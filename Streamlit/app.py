@@ -1,6 +1,6 @@
 import streamlit as st
 
-from pages import home, about, contact
+from views import home, about, contact
 
 st.set_page_config(
     page_title="TrustNet",
@@ -14,9 +14,15 @@ PAGES = {
 }
 
 def main():
-    st.sidebar.title("Navigation")
-    choice = st.sidebar.radio("Go to", list(PAGES.keys()))
-    PAGES[choice]()
+    tab1, tab2, tab3 = st.tabs(["Home", "About Us", "Contact"])
+
+    with tab1:
+        home.render()
+    with tab2:
+        about.render()
+    with tab3:
+        contact.render()
+
 
 if __name__ == "__main__":
     main()
