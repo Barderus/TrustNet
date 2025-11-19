@@ -1,5 +1,5 @@
 import streamlit as st
-from views import home, about, contact  # <- your renamed folder
+from views import home, about, contact, faq
 
 st.set_page_config(
     page_title="TrustNet",
@@ -8,10 +8,10 @@ st.set_page_config(
 
 PAGES = {
     "Home": home.render,
-    "About Us": about.render,
+    "FAQ": faq.render,
+    "About": about.render,
     "Contact": contact.render,
 }
-
 
 def inject_css():
     st.markdown("""
@@ -29,11 +29,11 @@ def inject_css():
        BACKGROUND (INDIGO / PURPLE + ABSTRACT)
     -------------------------- */
     [data-testid="stAppViewContainer"] {
-        background-color: #eef2ff;
+        background-color: #0f172a; /* deep slate */
         background-image:
-            radial-gradient(circle at 0% 0%, rgba(99,102,241,0.18), transparent 55%),
-            radial-gradient(circle at 100% 100%, rgba(76,81,191,0.18), transparent 55%),
-            linear-gradient(135deg, #eef2ff 0%, #f9fafb 40%, #e0e7ff 100%);
+            radial-gradient(circle at 15% 20%, rgba(99,102,241,0.25) 0%, transparent 60%),
+            radial-gradient(circle at 80% 80%, rgba(168,85,247,0.22) 0%, transparent 60%),
+            linear-gradient(135deg, #1e1b4b 0%, #0f172a 60%, #0b1120 100%);
         background-attachment: fixed;
     }
 
@@ -46,17 +46,23 @@ def inject_css():
     }
 
     /* -------------------------
-       TYPOGRAPHY
+       TYPOGRAPHY — LIGHT MODE
     -------------------------- */
     h1, h2, h3, h4 {
-        color: #111827 !important;  /* near-black for good contrast */
+        color: black !important;  /* light slate */
         font-weight: 600;
         letter-spacing: 0.01em;
     }
-
-    p, label, span {
-        color: #374151 !important;  /* slate gray */
+    
+    p, label, span, div, li {
+        color: #e2e8f0 !important;  /* light gray */
     }
+    
+    /* Subtle secondary text */
+    .subtle-text, small {
+        color: #cbd5e1 !important;
+    }
+
 
     /* -------------------------
        MAIN LAYOUT CONTAINER
@@ -93,8 +99,8 @@ def inject_css():
     
     .nav-left {
         font-size: 1.4rem;
-        font-weight: 600;
-        color: #4f46e5;
+        font-weight: 1000;
+        color: #4f46e5 !important;
         letter-spacing: -0.02em;
     }
     
@@ -122,15 +128,45 @@ def inject_css():
     /* -------------------------
        CARDS (SEMI-TRANSPARENT)
     -------------------------- */
+    /* Modern Elevated Card */
     .card {
-        background: rgba(255, 255, 255, 0.85);
-        backdrop-filter: blur(10px);
-        padding: 1.75rem;
-        border-radius: 18px;
-        box-shadow: 0 20px 45px rgba(15, 23, 42, 0.08);
-        border: 1px solid rgba(148, 163, 184, 0.18);
+        background: rgba(255, 255, 255, 0.07); /* transparent glass */
+        backdrop-filter: blur(24px) saturate(180%);
+        -webkit-backdrop-filter: blur(24px) saturate(180%);
+
+    
+        padding: 0.9rem 1.2rem;
+        border-radius: 16px;
+    
+        border: 1px solid rgba(255, 255, 255, 0.12);
+    
+        box-shadow:
+            0 4px 12px rgba(0, 0, 0, 0.25),
+            inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+    
+        transition: transform 0.18s ease, box-shadow 0.2s ease;
         margin-bottom: 1.5rem;
     }
+    
+    /* Hover elevation */
+    .card:hover {
+        transform: translateY(-4px);
+        box-shadow:
+            0 8px 24px rgba(0, 0, 0, 0.35),
+            inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+    }
+    
+    /* Card Title Beautification */
+    .card h3 {
+        color: #f1f5f9 !important;
+        font-size: 1.25rem;
+        font-weight: 600;
+        margin-bottom: 0 !important;
+        margin-top: 0 !important;
+        letter-spacing: -0.01em;
+    }
+
+
 
     /* -------------------------
        PRIMARY BUTTONS (PILL, RAISED)
@@ -342,24 +378,20 @@ def inject_css():
 
 def render_navbar(active_page):
     st.markdown(f"""
-    <div class="navbar">
-        <div class="navbar-container">
-            <div class="nav-left">T R U S T N E T </div>
-            <div class="nav-right">
-                <a href="/?nav=Home" class="{ 'nav-active' if active_page=='Home' else '' }">Home</a>
-                <a href="/?nav=About" class="{ 'nav-active' if active_page=='About' else '' }">About</a>
-                <a href="/?nav=Contact" class="{ 'nav-active' if active_page=='Contact' else '' }">Contact</a>
-            </div>
+<div class="navbar">
+    <div class="navbar-container">
+        <div class="nav-left">TRUSTNET</div>
+        <div class="nav-right">
+            <a href="/?nav=Home" class="{ 'nav-active' if active_page=='Home' else '' }" target="_self">Home</a>
+            <a href="/?nav=FAQ" class="{ 'nav-active' if active_page=='FAQ' else '' }" target="_self">FAQ</a>
+            <a href="/?nav=About" class="{ 'nav-active' if active_page=='About' else '' }" target="_self">About</a>
+            <a href="/?nav=Contact" class="{ 'nav-active' if active_page=='Contact' else '' }" target="_self">Contact</a>
         </div>
     </div>
-    """, unsafe_allow_html=True)
+</div>
+""", unsafe_allow_html=True)
 
 
-PAGES = {
-    "Home": home.render,
-    "About": about.render,
-    "Contact": contact.render,
-}
 
 
 def main():
