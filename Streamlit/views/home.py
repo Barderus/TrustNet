@@ -22,31 +22,41 @@ def render():
     # -------------------------
     # PROJECT SUMMARY CARD
     # -------------------------
-    st.markdown("<div class='card'>", unsafe_allow_html=True)
     st.markdown("""
-    ### Project Summary
-    TrustNet is a research-driven fake news detection system that leverages
-    advanced NLP and machine learning models to identify misleading or false information.
-    This UI demonstrates the interface layout before model integration.
-    """)
-    st.markdown("</div>", unsafe_allow_html=True)
+    <div class="card">
+        <h3>Project Summary</h3>
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.markdown(
+        """
+        TrustNet is a research project dedicated to improving misinformation detection through modern Machine Learning and Natural Language Processing methods.
+            
+        The system is designed to explore model performance, interpretability, and real-world applicability across various datasets and text sources.
+        """,
+        unsafe_allow_html=True
+    )
+
+
 
     # -------------------------
     # INPUT CARD
     # -------------------------
-    st.markdown("<div class='card'>", unsafe_allow_html=True)
-
-    st.subheader("Choose Input Method")
+    st.markdown("""
+    <div class="card">
+        <h3>Choose your input method </h3>
+    </div>
+    """, unsafe_allow_html=True)
 
     tab_text, tab_file = st.tabs(["Paste Text", "Upload File"])
 
     with tab_text:
-        st.markdown("#### Paste your text here:")
-        st.text_area("Text Input", height=200)
+        st.text_area("Paste your text here", height=200)
+
 
     with tab_file:
-        st.markdown("#### Upload a document:")
         st.file_uploader("Upload PDF or DOCX", type=["pdf", "docx"])
+
 
     st.markdown("</div>", unsafe_allow_html=True)
 
@@ -60,8 +70,11 @@ def render():
     # -------------------------
     # RESULTS CARD
     # -------------------------
-    st.markdown("<div class='card'>", unsafe_allow_html=True)
-    st.markdown("### Results")
+    st.markdown("""
+    <div class="card">
+        <h3>Results </h3>
+    </div>
+    """, unsafe_allow_html=True)
     st.info("Results will appear here once the model is connected.")
     st.markdown("</div>", unsafe_allow_html=True)
 
