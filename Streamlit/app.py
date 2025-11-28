@@ -1,3 +1,8 @@
+# Force sys.path to include the project root
+import sys
+PROJECT_ROOT = r"C:\Users\Owner\PycharmProjects\TrustNet"
+sys.path.append(PROJECT_ROOT)
+
 import streamlit as st
 from views import home, about, contact, faq
 
