@@ -12,6 +12,18 @@ from utils.prediction import run_prediction
 
 def render():
 
+    # ---------------------------------------------
+    # Initialize session state
+    # ---------------------------------------------
+    if "last_task" not in st.session_state:
+        st.session_state.last_task = "Fake News Detection"
+
+    if "user_text" not in st.session_state:
+        st.session_state.user_text = ""
+
+    if "headline" not in st.session_state:
+        st.session_state.headline = ""
+
     # -------------------------
     # HERO SECTION
     # -------------------------
@@ -47,8 +59,17 @@ def render():
 
     task = st.radio(
         "Choose which model to use:",
-        ["Fake News Detection", "Stance Detection"]
+        ["Fake News Detection", "Stance Detection"],
+        key="task_radio"
     )
+
+    # -----------------------------------------------------
+    # CLEAR INPUT WHEN SWITCHING TASKS
+    # -----------------------------------------------------
+    if task != st.session_state.last_task:
+        st.session_state.user_text = ""
+        st.session_state.headline = ""
+        st.session_state.last_task = task
 
     # -------------------------
     # INPUT SECTION
@@ -57,13 +78,28 @@ def render():
     <div class="card"><h3>Choose your input method</h3></div>
     """, unsafe_allow_html=True)
 
+    # If stance detection, it requires headline input
+    if task == "Stance Detection":
+        st.markdown("### Headline")
+        headline = st.text_input(
+            "Enter the headline:",
+            value=st.session_state.headline,
+            key="headline_input"
+        )
+    else:
+        headline = None
+
     tab_text, tab_file = st.tabs(["Paste Text", "Upload File"])
 
-    user_text = ""
     user_file = None
 
     with tab_text:
-        user_text = st.text_area("Paste your text here", height=200)
+        text_value = st.text_area(
+            "Paste your text here",
+            height=200,
+            value=st.session_state.user_text,
+            key="body_text_area"
+        )
 
     with tab_file:
         user_file = st.file_uploader("Upload PDF or DOCX", type=["pdf", "docx"])
@@ -83,6 +119,14 @@ def render():
     """, unsafe_allow_html=True)
 
     if detect:
+
+        # For stance detection, headline required
+        if task == "Stance Detection" and (not headline or headline.strip() == ""):
+            st.error("Headline is required for stance detection.")
+            st.stop()
+
+        # Extract file text if uploaded
+        user_text = text_value
         if user_file:
             if user_file.type == "application/pdf":
                 user_text = extract_text_from_pdf(user_file)
@@ -97,12 +141,17 @@ def render():
         if task == "Fake News Detection":
             model, tokenizer = load_fake_news_model()
             labels = ["FAKE", "REAL"]
-        else:
+            model_input = user_text
+
+        else:  # stance detection
             model, tokenizer = load_stance_model()
             labels = ["AGREE", "DISAGREE", "DISCUSS", "UNRELATED"]
 
+            # Combine headline + body (stance models expect this format)
+            model_input = headline + " [SEP] " + user_text
+
         # Run prediction
-        pred, probs = run_prediction(model, tokenizer, user_text)
+        pred, probs = run_prediction(model, tokenizer, model_input)
 
         st.success(f"Prediction: **{labels[pred]}**")
 
