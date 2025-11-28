@@ -119,7 +119,6 @@ def render():
     """, unsafe_allow_html=True)
 
     if detect:
-
         # For stance detection, headline required
         if task == "Stance Detection" and (not headline or headline.strip() == ""):
             st.error("Headline is required for stance detection.")
@@ -153,11 +152,28 @@ def render():
         # Run prediction
         pred, probs = run_prediction(model, tokenizer, model_input)
 
-        st.success(f"Prediction: **{labels[pred]}**")
-
-        st.subheader("Class Probabilities:")
+        # Build probability rows
+        rows_html = ""
         for lbl, p in zip(labels, probs):
-            st.write(f"{lbl}: **{p:.4f}**")
+            rows_html += f"<tr><td>{lbl}</td><td>{p:.4f}</td></tr>"
+
+        # --- WHITE RESULT CARD ---
+        st.markdown(
+            f"""
+        <div class="result-card">
+          <div class="result-title">
+            Prediction: <span class="prediction-value">{labels[pred]}</span>
+          </div>
+        
+          <table class="result-table">
+            <tr><th>Class</th><th>Probability</th></tr>
+            {rows_html}
+          </table>
+        </div>
+            """,
+            unsafe_allow_html=True
+)
+
 
     else:
         st.info("Results will appear here once the model is connected.")

@@ -276,7 +276,7 @@ def inject_css():
     }
     
     /* -------------------------
-   HERO SECTION
+        HERO SECTION
     -------------------------- */
     
     .hero {
@@ -326,25 +326,74 @@ def inject_css():
         transform: translateY(-2px) !important;
     }
 
-/* -------------------------
-   FIX: TAB TEXT COLOR (ALWAYS DARK)
--------------------------- */
+    /* ============================================================
+                RESULT CARD (WHITE BACKGROUND)
+       ============================================================ */
+    
+    .result-card {
+        background: #ffffff !important;
+        padding: 32px 36px !important;
+        border-radius: 18px !important;
+        box-shadow: 0 8px 28px rgba(0, 0, 0, 0.30) !important;
+        margin-top: 25px !important;
+        margin-bottom: 25px !important;
+        width: 100%;
+    }
+    
+    /* Title: Prediction */
+    .result-title {
+        font-size: 1.5rem !important;
+        font-weight: 900 !important;
+        color: #111827 !important;
+        margin-bottom: 18px !important;
+    }
+    
+    /* Prediction value (e.g. REAL, FAKE, UNRELATED) */
+    .prediction-value {
+        color: #4f46e5 !important; /* Indigo accent */
+        font-weight: 900 !important;
+    }
+    
+    /* Clean probability table */
+    .result-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 10px;
+    }
+    
+    .result-table th {
+        background: #f3f4f6 !important;
+        padding: 12px 16px !important;
+        font-weight: 700 !important;
+        color: #111827 !important;
+        border-bottom: 1px solid #e5e7eb !important;
+    }
+    
+    .result-table td {
+        padding: 12px 16px !important;
+        color: #111827 !important;
+        border-bottom: 1px solid #f2f2f2 !important;
+    }
 
-/* Base tab text */
-.stTabs [data-baseweb="tab"] {
-    color: #374151 !important;   /* Slate gray */
-    font-weight: 500;
-}
-
-/* Active tab text */
-.stTabs [data-baseweb="tab"][aria-selected="true"] {
-    color: #111827 !important;   /* Near-black */
-}
-
-/* Hover state text */
-.stTabs [data-baseweb="tab"]:hover {
-    color: #111827 !important;
-}
+    /* -------------------------
+       FIX: TAB TEXT COLOR (ALWAYS DARK)
+    -------------------------- */
+    
+    /* Base tab text */
+    .stTabs [data-baseweb="tab"] {
+        color: #374151 !important;   /* Slate gray */
+        font-weight: 500;
+    }
+    
+    /* Active tab text */
+    .stTabs [data-baseweb="tab"][aria-selected="true"] {
+        color: #111827 !important;   /* Near-black */
+    }
+    
+    /* Hover state text */
+    .stTabs [data-baseweb="tab"]:hover {
+        color: #111827 !important;
+    }
 
 
     /* -------------------------
