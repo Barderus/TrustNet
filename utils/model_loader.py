@@ -10,6 +10,10 @@ def load_fake_news_model():
     tokenizer = DistilBertTokenizer.from_pretrained(
         "../Models/fake_news_model/distilbert_fakenews_tokenizer"
     )
+    print("Loaded Fake News Model Label Map:", model.config.id2label)
+    print("Loaded Fake News Label2ID:", model.config.label2id)
+
+
     return model, tokenizer
 
 
