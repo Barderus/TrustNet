@@ -1,7 +1,13 @@
-import streamlit as st
+from functools import lru_cache
+
 from transformers import DistilBertForSequenceClassification, DistilBertTokenizer
 
 from utils.project_config import get_model_paths
+
+try:
+    import streamlit as st
+except ModuleNotFoundError:
+    st = None
 
 
 def _load_model_bundle(model_key):
@@ -20,11 +26,16 @@ def _load_model_bundle(model_key):
     return model, tokenizer
 
 
-@st.cache_resource
+@lru_cache(maxsize=1)
 def load_fake_news_model():
     return _load_model_bundle("fake_news")
 
 
-@st.cache_resource
+@lru_cache(maxsize=1)
 def load_stance_model():
     return _load_model_bundle("stance")
+
+
+if st is not None:
+    load_fake_news_model = st.cache_resource(load_fake_news_model)
+    load_stance_model = st.cache_resource(load_stance_model)

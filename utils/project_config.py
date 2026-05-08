@@ -6,7 +6,7 @@ from pathlib import Path
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
-DATA_DIR = Path(os.getenv("TRUSTNET_DATA_DIR", PROJECT_ROOT / "Data"))
+DATA_DIR = Path(os.getenv("TRUSTNET_DATA_DIR", PROJECT_ROOT / "data"))
 MODELS_DIR = Path(os.getenv("TRUSTNET_MODELS_DIR", PROJECT_ROOT / "Models"))
 ARTIFACTS_DIR = Path(os.getenv("TRUSTNET_ARTIFACTS_DIR", PROJECT_ROOT / "artifacts"))
 DOCS_DIR = PROJECT_ROOT / "docs"

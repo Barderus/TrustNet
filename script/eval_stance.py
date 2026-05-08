@@ -13,8 +13,8 @@ warnings.filterwarnings(
 # -----------------------------
 # LOAD MODEL + TOKENIZER
 # -----------------------------
-MODEL_PATH = "../Notebooks/distilbert_stanceD"
-TOKENIZER_PATH = "../Notebooks/distilbert_tokenizer_stanceD"
+MODEL_PATH = "../notebooks/distilbert_stanceD"
+TOKENIZER_PATH = "../notebooks/distilbert_tokenizer_stanceD"
 
 print("Loading model...")
 model = DistilBertForSequenceClassification.from_pretrained(MODEL_PATH)
