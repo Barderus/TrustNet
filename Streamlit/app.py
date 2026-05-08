@@ -1,14 +1,16 @@
-# Force sys.path to include the project root
+from pathlib import Path
 import sys
-PROJECT_ROOT = r"C:\Users\Owner\PycharmProjects\TrustNet"
-sys.path.append(PROJECT_ROOT)
+
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
 
 import streamlit as st
-from views import home, about, contact, faq
+from views import about, contact, faq, home
 
 st.set_page_config(
     page_title="TrustNet",
-    layout="wide"
+    layout="wide",
 )
 
 PAGES = {
@@ -18,8 +20,10 @@ PAGES = {
     "Contact": contact.render,
 }
 
+
 def inject_css():
-    st.markdown("""
+    st.markdown(
+        """
     <style>
     /* -------------------------
        FONT
@@ -51,27 +55,24 @@ def inject_css():
     }
 
     /* -------------------------
-       TYPOGRAPHY — LIGHT MODE
+       TYPOGRAPHY
     -------------------------- */
     h1, h2, h3, h4 {
-        color: black !important;  /* light slate */
+        color: black !important;
         font-weight: 600;
         letter-spacing: 0.01em;
     }
-    
+
     p, label, span, div, li {
-        color: #e2e8f0 !important;  /* light gray */
+        color: #e2e8f0 !important;
     }
-    
-    /* Subtle secondary text */
+
     .subtle-text, small {
         color: #cbd5e1 !important;
     }
 
-
     /* -------------------------
        MAIN LAYOUT CONTAINER
-       (use by wrapping content in <div class="main-container"> ... </div>)
     -------------------------- */
     .main-container {
         max-width: 960px;
@@ -84,7 +85,7 @@ def inject_css():
     -------------------------- */
     .navbar {
         width: 100%;
-        background: rgba(255, 255, 255, 0.75); /* semi-transparent */
+        background: rgba(255, 255, 255, 0.75);
         backdrop-filter: blur(14px);
         border-bottom: 1px solid rgba(203, 213, 225, 0.4);
         position: sticky;
@@ -92,7 +93,7 @@ def inject_css():
         z-index: 999;
         padding: 0.8rem 0;
     }
-    
+
     .navbar-container {
         max-width: 1000px;
         margin: 0 auto;
@@ -101,14 +102,14 @@ def inject_css():
         justify-content: space-between;
         align-items: center;
     }
-    
+
     .nav-left {
         font-size: 1.4rem;
         font-weight: 1000;
         color: #4f46e5 !important;
         letter-spacing: -0.02em;
     }
-    
+
     .nav-right a {
         margin-left: 1.8rem;
         text-decoration: none;
@@ -119,49 +120,41 @@ def inject_css():
         padding-bottom: 4px;
         border-bottom: 2px solid transparent;
     }
-    
+
     .nav-right a:hover {
         color: #111827;
         border-bottom: 2px solid #6366f1;
     }
-    
+
     .nav-active {
         color: #111827 !important;
         border-bottom: 2px solid #6366f1 !important;
     }
 
     /* -------------------------
-       CARDS (SEMI-TRANSPARENT)
+       CARDS
     -------------------------- */
-    /* Modern Elevated Card */
     .card {
-        background: rgba(255, 255, 255, 0.07); /* transparent glass */
+        background: rgba(255, 255, 255, 0.07);
         backdrop-filter: blur(24px) saturate(180%);
         -webkit-backdrop-filter: blur(24px) saturate(180%);
-
-    
         padding: 0.9rem 1.2rem;
         border-radius: 16px;
-    
         border: 1px solid rgba(255, 255, 255, 0.12);
-    
         box-shadow:
             0 4px 12px rgba(0, 0, 0, 0.25),
             inset 0 0 0 1px rgba(255, 255, 255, 0.05);
-    
         transition: transform 0.18s ease, box-shadow 0.2s ease;
         margin-bottom: 1.5rem;
     }
-    
-    /* Hover elevation */
+
     .card:hover {
         transform: translateY(-4px);
         box-shadow:
             0 8px 24px rgba(0, 0, 0, 0.35),
             inset 0 0 0 1px rgba(255, 255, 255, 0.08);
     }
-    
-    /* Card Title Beautification */
+
     .card h3 {
         color: #f1f5f9 !important;
         font-size: 1.25rem;
@@ -171,10 +164,8 @@ def inject_css():
         letter-spacing: -0.01em;
     }
 
-
-
     /* -------------------------
-       PRIMARY BUTTONS (PILL, RAISED)
+       PRIMARY BUTTONS
     -------------------------- */
     div.stButton > button {
         background-color: #6366f1;
@@ -187,16 +178,13 @@ def inject_css():
         box-shadow: 0 10px 25px rgba(79, 70, 229, 0.35);
         transition: all 0.2s ease;
     }
-    
+
     div.stButton > button:hover {
         background-color: #4f46e5;
         box-shadow: 0 14px 30px rgba(79, 70, 229, 0.45);
         transform: translateY(-1px);
     }
 
-    /* -------------------------
-       FILE UPLOADER BUTTON (MATCH PRIMARY)
-    -------------------------- */
     [data-testid="stFileUploader"] button {
         background-color: #6366f1 !important;
         color: #ffffff !important;
@@ -208,32 +196,27 @@ def inject_css():
         box-shadow: 0 10px 25px rgba(79, 70, 229, 0.35) !important;
         transition: all 0.2s ease !important;
     }
-    
+
     [data-testid="stFileUploader"] button:hover {
         background-color: #4f46e5 !important;
         box-shadow: 0 14px 30px rgba(79, 70, 229, 0.45) !important;
         transform: translateY(-1px) !important;
     }
-    
-    /* FILE UPLOADER CONTAINER */
+
     [data-testid="stFileUploader"] section {
         background: #ffffff;
         border-radius: 14px;
         padding: 0.9rem;
         border: 1px dashed #c7d2fe;
     }
-    
-    /* -------------------------
-       FORCE WHITE TEXT ON ALL BUTTONS
-    -------------------------- */
-    div.stButton > button, 
-    .stButton button, 
-    button[kind="primary"], 
-    button[kind="secondary"], 
+
+    div.stButton > button,
+    .stButton button,
+    button[kind="primary"],
+    button[kind="secondary"],
     button {
         color: #ffffff !important;
     }
-
 
     /* -------------------------
        TEXT AREAS
@@ -247,45 +230,40 @@ def inject_css():
     }
 
     /* -------------------------
-       TABS (BLUE UNDERLINE, MODERN)
+       TABS
     -------------------------- */
-    /* Tab container spacing */
     .stTabs {
         margin-top: 0.5rem;
     }
 
-    /* Individual tab buttons */
     .stTabs [data-baseweb="tab"] {
         font-weight: 500;
-        color: #6b7280;
+        color: #374151 !important;
         border-bottom: 2px solid transparent;
         padding: 0.5rem 1rem;
     }
 
-    /* Active tab */
     .stTabs [data-baseweb="tab"][aria-selected="true"] {
-        color: #111827;
+        color: #111827 !important;
         border-bottom: 2px solid #6366f1;
     }
 
-    /* Hover state */
     .stTabs [data-baseweb="tab"]:hover {
-        color: #111827;
+        color: #111827 !important;
         background-color: rgba(99, 102, 241, 0.06);
         border-radius: 999px 999px 0 0;
     }
-    
+
     /* -------------------------
-        HERO SECTION
+       HERO SECTION
     -------------------------- */
-    
     .hero {
         text-align: center;
         padding: 6rem 1rem 4rem;
         max-width: 900px;
         margin: 0 auto;
     }
-    
+
     .hero-title {
         font-size: 3rem;
         font-weight: 700;
@@ -293,7 +271,7 @@ def inject_css():
         margin-bottom: 1rem;
         letter-spacing: -0.02em;
     }
-    
+
     .hero-subtitle {
         font-size: 1.25rem;
         font-weight: 400;
@@ -302,12 +280,11 @@ def inject_css():
         margin: 0 auto;
         line-height: 1.7;
     }
-    
-    /* Hero call-to-action button */
+
     .hero-cta {
         margin-top: 2.5rem;
     }
-    
+
     .hero-cta button {
         background-color: #6366f1 !important;
         color: white !important;
@@ -319,17 +296,16 @@ def inject_css():
         box-shadow: 0 14px 30px rgba(79, 70, 229, 0.35) !important;
         transition: all 0.2s ease !important;
     }
-    
+
     .hero-cta button:hover {
         background-color: #4f46e5 !important;
         box-shadow: 0 18px 38px rgba(79, 70, 229, 0.45) !important;
         transform: translateY(-2px) !important;
     }
 
-    /* ============================================================
-                RESULT CARD (WHITE BACKGROUND)
-       ============================================================ */
-    
+    /* -------------------------
+       RESULT CARD
+    -------------------------- */
     .result-card {
         background: #ffffff !important;
         padding: 32px 36px !important;
@@ -339,28 +315,25 @@ def inject_css():
         margin-bottom: 25px !important;
         width: 100%;
     }
-    
-    /* Title: Prediction */
+
     .result-title {
         font-size: 1.5rem !important;
         font-weight: 900 !important;
         color: #111827 !important;
         margin-bottom: 18px !important;
     }
-    
-    /* Prediction value (e.g. REAL, FAKE, UNRELATED) */
+
     .prediction-value {
-        color: #4f46e5 !important; /* Indigo accent */
+        color: #4f46e5 !important;
         font-weight: 900 !important;
     }
-    
-    /* Clean probability table */
+
     .result-table {
         width: 100%;
         border-collapse: collapse;
         margin-top: 10px;
     }
-    
+
     .result-table th {
         background: #f3f4f6 !important;
         padding: 12px 16px !important;
@@ -368,33 +341,12 @@ def inject_css():
         color: #111827 !important;
         border-bottom: 1px solid #e5e7eb !important;
     }
-    
+
     .result-table td {
         padding: 12px 16px !important;
         color: #111827 !important;
         border-bottom: 1px solid #f2f2f2 !important;
     }
-
-    /* -------------------------
-       FIX: TAB TEXT COLOR (ALWAYS DARK)
-    -------------------------- */
-    
-    /* Base tab text */
-    .stTabs [data-baseweb="tab"] {
-        color: #374151 !important;   /* Slate gray */
-        font-weight: 500;
-    }
-    
-    /* Active tab text */
-    .stTabs [data-baseweb="tab"][aria-selected="true"] {
-        color: #111827 !important;   /* Near-black */
-    }
-    
-    /* Hover state text */
-    .stTabs [data-baseweb="tab"]:hover {
-        color: #111827 !important;
-    }
-
 
     /* -------------------------
        HEADER / FOOTER
@@ -409,59 +361,55 @@ def inject_css():
         font-size: 0.85rem;
         padding: 2rem 0 0;
     }
-    
-    /* FORCE WHITE TEXT ON ALL BUTTONS + INNER ELEMENTS */
-    div.stButton > button, 
-    div.stButton > button * ,
-    button, 
-    button * ,
-    .st-emotion-cache-19rxjzo, 
-    .st-emotion-cache-19rxjzo * ,
-    [data-testid="baseButton-primary"], 
-    [data-testid="baseButton-primary"] *, 
-    [data-testid="baseButton-secondary"], 
+
+    div.stButton > button,
+    div.stButton > button *,
+    button,
+    button *,
+    .st-emotion-cache-19rxjzo,
+    .st-emotion-cache-19rxjzo *,
+    [data-testid="baseButton-primary"],
+    [data-testid="baseButton-primary"] *,
+    [data-testid="baseButton-secondary"],
     [data-testid="baseButton-secondary"] * {
         color: #ffffff !important;
         fill: #ffffff !important;
     }
-
     </style>
-    """, unsafe_allow_html=True)
-
+    """,
+        unsafe_allow_html=True,
+    )
 
 
 def render_navbar(active_page):
-    st.markdown(f"""
+    st.markdown(
+        f"""
 <div class="navbar">
     <div class="navbar-container">
         <div class="nav-left">TRUSTNET</div>
         <div class="nav-right">
-            <a href="/?nav=Home" class="{ 'nav-active' if active_page=='Home' else '' }" target="_self">Home</a>
-            <a href="/?nav=FAQ" class="{ 'nav-active' if active_page=='FAQ' else '' }" target="_self">FAQ</a>
-            <a href="/?nav=About" class="{ 'nav-active' if active_page=='About' else '' }" target="_self">About</a>
-            <a href="/?nav=Contact" class="{ 'nav-active' if active_page=='Contact' else '' }" target="_self">Contact</a>
+            <a href="/?nav=Home" class="{'nav-active' if active_page == 'Home' else ''}" target="_self">Home</a>
+            <a href="/?nav=FAQ" class="{'nav-active' if active_page == 'FAQ' else ''}" target="_self">FAQ</a>
+            <a href="/?nav=About" class="{'nav-active' if active_page == 'About' else ''}" target="_self">About</a>
+            <a href="/?nav=Contact" class="{'nav-active' if active_page == 'Contact' else ''}" target="_self">Contact</a>
         </div>
     </div>
 </div>
-""", unsafe_allow_html=True)
-
-
+""",
+        unsafe_allow_html=True,
+    )
 
 
 def main():
     inject_css()
 
-    # -- NEW WAY: use st.query_params --
     params = st.query_params
     active_page = params.get("nav", "Home")
+    if active_page not in PAGES:
+        active_page = "Home"
 
-    # Render navbar with active highlight
     render_navbar(active_page)
-
-    # Render the selected page
     PAGES[active_page]()
-
-    # Minimal footer
     st.markdown('<div class="footer">TrustNet © 2025</div>', unsafe_allow_html=True)
 
 
