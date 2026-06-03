@@ -1,7 +1,3 @@
-import tempfile
-import os
-from transformers_interpret import SequenceClassificationExplainer
-
 import torch
 
 def chunk_text(tokenizer, text, max_length=512, stride=50):
@@ -12,7 +8,8 @@ def chunk_text(tokenizer, text, max_length=512, stride=50):
     tokens = tokenizer(
         text,
         return_tensors="pt",
-        truncation=False
+        truncation=False,
+        verbose=False,
     )["input_ids"][0]
 
     chunks = []
@@ -77,7 +74,8 @@ def predict_text(model, tokenizer, text, temperature=1.0):
         tokenizer(
             text,
             truncation=False,
-            add_special_tokens=True
+            add_special_tokens=True,
+            verbose=False,
         )["input_ids"]
     )
 
