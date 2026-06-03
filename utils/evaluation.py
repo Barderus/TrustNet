@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import json
 from dataclasses import dataclass
 from datetime import datetime, UTC
@@ -15,7 +13,20 @@ from sklearn.metrics import (
     confusion_matrix,
     log_loss,
     precision_recall_fscore_support,
+    roc_auc_score,
 )
+
+
+def normalize_probability_rows(probabilities: list[list[float]]) -> list[list[float]]:
+    normalized: list[list[float]] = []
+    for probability_vector in probabilities:
+        values = [float(value) for value in probability_vector]
+        total = sum(values)
+        if total <= 0:
+            normalized.append(values)
+        else:
+            normalized.append([value / total for value in values])
+    return normalized
 
 
 @dataclass(frozen=True)
@@ -67,6 +78,7 @@ def compute_metrics(
     probabilities: list[list[float]],
     labels: list[str],
 ) -> dict:
+    probabilities = normalize_probability_rows(probabilities)
     accuracy = accuracy_score(true_labels, predicted_labels)
     macro_precision, macro_recall, macro_f1, _ = precision_recall_fscore_support(
         true_labels,
@@ -101,6 +113,27 @@ def compute_metrics(
         "weighted_f1": float(weighted_f1),
         "classification_report": report,
     }
+
+    try:
+        if len(labels) == 2:
+            positive_label_probabilities = [
+                probability_vector[1] for probability_vector in probabilities
+            ]
+            metrics["roc_auc"] = float(
+                roc_auc_score(true_labels, positive_label_probabilities)
+            )
+        else:
+            metrics["roc_auc"] = float(
+                roc_auc_score(
+                    true_labels,
+                    probabilities,
+                    labels=labels,
+                    multi_class="ovr",
+                    average="macro",
+                )
+            )
+    except ValueError:
+        metrics["roc_auc"] = None
 
     try:
         metrics["log_loss"] = float(log_loss(true_labels, probabilities, labels=labels))
@@ -180,6 +213,8 @@ def write_summary_markdown(metrics: dict, output_path: Path, labels: list[str]) 
     ]
     if metrics.get("log_loss") is not None:
         lines.append(f"- Log loss: {metrics['log_loss']:.4f}")
+    if metrics.get("roc_auc") is not None:
+        lines.append(f"- ROC-AUC: {metrics['roc_auc']:.4f}")
 
     lines.extend(["", "## Labels", ""])
     for label in labels:
@@ -197,6 +232,7 @@ def save_evaluation_outputs(
     probabilities: list[list[float]],
     labels: list[str],
 ) -> EvaluationArtifacts:
+    probabilities = normalize_probability_rows(probabilities)
     metrics_json = output_dir / "metrics.json"
     predictions_csv = output_dir / "predictions.csv"
     confusion_matrix_png = output_dir / "confusion_matrix.png"
