@@ -20,6 +20,18 @@ dist/
 *.ipynb_save
 */.ipynb_checkpoints/*
 
+# --- Generated project artifacts ---
+artifacts/
+data/preprocessed/
+models/
+images/*.html
+images/*.png
+images/*.jpg
+images/*.jpeg
+images/*.gif
+images/*.svg
+
 # --- IDE stuff ---
 .idea/
+
 
