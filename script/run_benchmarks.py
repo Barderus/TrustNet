@@ -1,12 +1,4 @@
-from __future__ import annotations
-
-import argparse
 from pathlib import Path
-import sys
-
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
-if str(PROJECT_ROOT) not in sys.path:
-    sys.path.insert(0, str(PROJECT_ROOT))
 
 from tqdm import tqdm
 
@@ -23,7 +15,11 @@ from utils.evaluation import (
 )
 from utils.model_loader import load_fake_news_model, load_stance_model
 from utils.prediction import predict_text
-from utils.project_config import ARTIFACTS_DIR
+
+
+TASK = "all"
+LIMIT = None
+ARTIFACTS_DIR = Path(r"C:\Users\Barderus_Legion\PycharmProjects\TrustNet\artifacts")
 
 
 def _evaluate_bundle(
@@ -107,38 +103,13 @@ def run_stance_benchmark(output_base_dir: Path, limit: int | None) -> Path:
     )
 
 
-def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Run TrustNet evaluation benchmarks.")
-    parser.add_argument(
-        "--task",
-        choices=["fake_news", "stance", "all"],
-        default="all",
-        help="Which benchmark to run.",
-    )
-    parser.add_argument(
-        "--output-dir",
-        default=str(ARTIFACTS_DIR),
-        help="Base directory where evaluation artifacts will be saved.",
-    )
-    parser.add_argument(
-        "--limit",
-        type=int,
-        default=None,
-        help="Optional number of evaluation examples to run for quick checks.",
-    )
-    return parser.parse_args()
-
-
 def main() -> None:
-    args = parse_args()
-    output_base_dir = Path(args.output_dir)
-
-    if args.task in {"fake_news", "all"}:
-        fake_news_dir = run_fake_news_benchmark(output_base_dir, args.limit)
+    if TASK in {"fake_news", "all"}:
+        fake_news_dir = run_fake_news_benchmark(ARTIFACTS_DIR, LIMIT)
         print(f"Fake news evaluation artifacts saved to: {fake_news_dir}")
 
-    if args.task in {"stance", "all"}:
-        stance_dir = run_stance_benchmark(output_base_dir, args.limit)
+    if TASK in {"stance", "all"}:
+        stance_dir = run_stance_benchmark(ARTIFACTS_DIR, LIMIT)
         print(f"Stance evaluation artifacts saved to: {stance_dir}")
 
 
