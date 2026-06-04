@@ -65,6 +65,34 @@ def load_fake_news_kaggle_bundle(
     )
 
 
+def load_fake_news_kaggle_title_bundle(
+    data_dir: Path = DATA_DIR,
+    test_size: float = 0.2,
+    random_state: int = 42,
+) -> DatasetBundle:
+    bundle = load_fake_news_kaggle_bundle(
+        data_dir=data_dir,
+        test_size=test_size,
+        random_state=random_state,
+    )
+
+    train_frame = bundle.train.copy()
+    test_frame = bundle.test.copy()
+    train_frame["title_input"] = train_frame["title"].fillna("").astype(str).str.strip()
+    test_frame["title_input"] = test_frame["title"].fillna("").astype(str).str.strip()
+    train_frame = train_frame.loc[train_frame["title_input"].str.len() > 0].copy()
+    test_frame = test_frame.loc[test_frame["title_input"].str.len() > 0].copy()
+
+    return DatasetBundle(
+        name="fake-news-kaggle-title-only",
+        train=train_frame.reset_index(drop=True),
+        test=test_frame.reset_index(drop=True),
+        label_column=bundle.label_column,
+        text_column="title_input",
+        labels=bundle.labels,
+    )
+
+
 def _load_stance_pair_frame(bodies_path: Path, stances_path: Path) -> pd.DataFrame:
     bodies = pd.read_csv(bodies_path)
     stances = pd.read_csv(stances_path)

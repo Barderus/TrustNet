@@ -1,4 +1,4 @@
-# TrustNet: Misinformation and Stance Detection
+Le# TrustNet: Misinformation and Stance Detection
 
 ## Overview
 
@@ -115,6 +115,12 @@ Run benchmark evaluation after model artifacts exist:
 
 ```bash
 uv run python script/run_benchmarks.py
+```
+
+Run cross-dataset fake-news evaluation on FakeNewsNet titles:
+
+```bash
+uv run python script/evaluate_cross_dataset.py
 ```
 
 Run the Streamlit app after model artifacts exist:

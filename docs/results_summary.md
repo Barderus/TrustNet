@@ -24,7 +24,7 @@ in progress.
 | Stance detection | FNC-1 | TextCNN | 0.8315 | 0.6691 | 0.5228 | 0.5618 | Deep learning baseline |
 | Stance detection | FNC-1 | Bidirectional LSTM | 0.8764 | 0.7033 | 0.6560 | 0.6774 | Deep learning baseline |
 | Stance detection | FNC-1 | DistilBERT | 0.8308 | 0.5759 | 0.5501 | 0.5423 | Latest saved benchmark evaluation |
-| Cross-dataset fake-news evaluation | FakeNewsNet or More Fake News | DistilBERT trained on Kaggle | TBD | TBD | TBD | TBD | Planned generalization test |
+| Cross-dataset fake-news evaluation | FakeNewsNet titles | DistilBERT trained on Kaggle | 0.2727 | 0.5449 | 0.5084 | 0.2385 | External title-only domain-shift check |
 
 ## Transformer Training Evaluation
 
@@ -51,6 +51,44 @@ while macro F1 stays much lower because minority stance labels are harder to
 recover. For that reason, stance detection should be discussed with macro F1 and
 per-class examples, not accuracy alone.
 
+## Cross-Dataset Evaluation
+
+The fake-news DistilBERT model was also evaluated on FakeNewsNet titles without
+retraining. This is a stricter check than the Kaggle holdout split because the
+source, topic mix, and input format are different. The Kaggle evaluation uses
+title plus article body, while this FakeNewsNet run uses title only.
+
+| Dataset | Input | Accuracy | Macro F1 | ROC-AUC | Notes |
+| --- | --- | ---: | ---: | ---: | --- |
+| FakeNewsNet | Title only | 0.2727 | 0.2385 | 0.5526 | External domain-shift check |
+
+The result shows weak transfer to FakeNewsNet titles. The model predicted
+`FAKE` for 22,354 of 23,196 examples, which led to many real articles being
+flagged incorrectly. This does not mean the model is useless, but it does show
+that the strong Kaggle holdout result should not be treated as evidence of
+general misinformation detection in the wild.
+
+The error pattern is also useful. FakeNewsNet title-only inputs are much shorter
+than the Kaggle title-plus-body examples, so the drop may reflect domain shift,
+input mismatch, dataset labeling differences, or all three.
+
+## Error Analysis and Explainability
+
+The first cross-dataset error-analysis pass saved examples for false positives,
+false negatives, high-confidence mistakes, and low-confidence predictions. The
+largest issue is false positives: 16,735 real FakeNewsNet titles were predicted
+as `FAKE`.
+
+Initial token-level explanations were also generated for a small set of correct
+and incorrect title predictions. Several explanations highlight headline-style
+tokens such as `breaking` and source-like words. That is useful as a diagnostic
+because it suggests the model may be responding to presentation style and
+dataset-specific wording, not just meaningful factual content.
+
+These explanations should be treated as model-behavior clues. They do not prove
+that the model's reasoning is correct, and they do not verify whether an article
+is true or false.
+
 ## Saved Artifacts
 
 Benchmark runs save outputs under:
@@ -75,9 +113,12 @@ Current saved benchmark runs:
 - `artifacts/deep_learning/stance/metrics.csv`
 - `artifacts/evaluation/fake_news/fake-news-kaggle/20260603T003238Z/`
 - `artifacts/evaluation/stance/stance-detection/20260603T005603Z/`
+- `artifacts/evaluation/cross_dataset/fakenewsnet_titles/20260604T181847Z/`
+- `artifacts/error_analysis/cross_dataset/fakenewsnet_titles/20260604T181847Z/`
+- `artifacts/explainability/cross_dataset/fakenewsnet_titles/20260604T181847Z/`
 
 ## Next Result Tasks
 
-- Add cross-dataset evaluation results.
-- Add false-positive and false-negative examples.
-- Add explainability examples for correct and incorrect predictions.
+- Review representative false-positive and false-negative examples.
+- Review the first explanation examples and decide which ones should be shown in
+  the final public writeup.
