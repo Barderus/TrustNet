@@ -13,6 +13,7 @@ from utils.evaluation import (
     build_predictions_frame,
     compute_metrics,
     create_run_directory,
+    require_grouped_split_model,
     save_evaluation_outputs,
 )
 from utils.model_loader import load_fake_news_model
@@ -73,6 +74,7 @@ def main() -> None:
         ).reset_index(drop=True)
 
     model, tokenizer = load_fake_news_model()
+    require_grouped_split_model(model)
     predicted_indices, predicted_labels, probabilities = predict_batches(
         bundle=bundle,
         model=model,
