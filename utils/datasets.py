@@ -5,6 +5,7 @@ import pandas as pd
 from sklearn.model_selection import train_test_split
 
 from utils.project_config import DATA_DIR
+from utils.preprocessing import clean_for_model, prepare_stance_input
 
 
 FAKE_NEWS_LABELS = ["FAKE", "REAL"]
@@ -44,6 +45,7 @@ def load_fake_news_kaggle_bundle(
     full_frame = pd.concat([fake_frame, true_frame], ignore_index=True)
     full_frame["input_text"] = _combine_title_and_text(full_frame)
     full_frame = full_frame.loc[full_frame["input_text"].str.len() > 0].copy()
+    full_frame["model_input"] = full_frame["input_text"].apply(clean_for_model)
 
     train_frame, test_frame = train_test_split(
         full_frame,
@@ -60,7 +62,7 @@ def load_fake_news_kaggle_bundle(
         train=train_frame,
         test=test_frame,
         label_column="label",
-        text_column="input_text",
+        text_column="model_input",
         labels=FAKE_NEWS_LABELS,
     )
 
@@ -82,13 +84,15 @@ def load_fake_news_kaggle_title_bundle(
     test_frame["title_input"] = test_frame["title"].fillna("").astype(str).str.strip()
     train_frame = train_frame.loc[train_frame["title_input"].str.len() > 0].copy()
     test_frame = test_frame.loc[test_frame["title_input"].str.len() > 0].copy()
+    train_frame["title_model_input"] = train_frame["title_input"].apply(clean_for_model)
+    test_frame["title_model_input"] = test_frame["title_input"].apply(clean_for_model)
 
     return DatasetBundle(
         name="fake-news-kaggle-title-only",
         train=train_frame.reset_index(drop=True),
         test=test_frame.reset_index(drop=True),
         label_column=bundle.label_column,
-        text_column="title_input",
+        text_column="title_model_input",
         labels=bundle.labels,
     )
 
@@ -102,6 +106,10 @@ def _load_stance_pair_frame(bodies_path: Path, stances_path: Path) -> pd.DataFra
     merged["headline"] = merged["Headline"].fillna("").astype(str).str.strip()
     merged["body"] = merged["articleBody"].fillna("").astype(str).str.strip()
     merged["input_text"] = (merged["headline"] + " [SEP] " + merged["body"]).str.strip()
+    merged["model_input"] = merged.apply(
+        lambda row: prepare_stance_input(row["headline"], row["body"]),
+        axis=1,
+    )
     return merged
 
 
@@ -121,6 +129,6 @@ def load_stance_detection_bundle(data_dir: Path = DATA_DIR) -> DatasetBundle:
         train=train_frame,
         test=test_frame,
         label_column="label",
-        text_column="input_text",
+        text_column="model_input",
         labels=STANCE_LABELS,
     )
