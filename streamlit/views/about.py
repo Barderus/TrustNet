@@ -1,55 +1,30 @@
 import streamlit as st
 
+
 def render():
-    # -------------------------
-    # HERO SECTION
-    # -------------------------
     st.markdown("""
     <div class="hero">
         <div class="hero-title">About</div>
         <div class="hero-subtitle">
-            Everything to know about TrustNet and its developer
+            TrustNet and the questions behind the capstone
         </div>
     </div>
     """, unsafe_allow_html=True)
 
+    st.markdown("<div class='card'><h3>TrustNet</h3></div>", unsafe_allow_html=True)
     st.markdown("""
-    <div class="card">
-        <h3>TrustNet </h3>
-    </div>
-    """, unsafe_allow_html=True)
-
-    st.markdown(
-        """
-            TrustNet (FakeNews Finder) is an interactive web tool that helps users check whether a news article or text appears credible. 
-            Users can paste an article or link, and the system produces a trustworthiness score (0–100) along with an explanation of 
-            why the content was judged that way. The goal is not only to detect misinformation but to teach critical reading by showing which words, 
-            tones, and claims influenced the decision.
-            
-            This project was developed as part of my undergraduate Capstone in Computer Science. 
-            It combines fake-news classification, stance detection, and explainability to make AI-based fact-checking more transparent.
-
-        """,
-        unsafe_allow_html=True
-    )
-
-
-    st.markdown(
-        """
-        <div class="card">
-            <h3>Developer</h3>
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
-
-
-    st.markdown("""
-    I’m Gabriel dos Reis, a Computer Science student passionate about machine learning, NLP, and model interpretability. 
-    My work focuses on building transparent AI systems that go beyond classification to explain their reasoning. 
-    For TrustNet, I combined fake-news classification, stance detection, and SHAP-based explainability to explore real-world misinformation challenges. 
-    I enjoy taking on complex datasets, experimenting with model architectures, and translating research concepts into practical, 
-    interactive applications.
-
+    TrustNet is an undergraduate Computer Science capstone about fake-news
+    classification and headline/body stance detection. The app uses separate
+    DistilBERT models for these tasks and shows class probabilities and token
+    attributions. A fake-news prediction describes similarity to labeled
+    training examples; it does not check the facts in an article. Stance describes
+    how a headline relates to a body, not whether either is true.
     """)
-    st.markdown("</div>", unsafe_allow_html=True)
+
+    st.markdown("<div class='card'><h3>Developer</h3></div>", unsafe_allow_html=True)
+    st.markdown("""
+    I am Gabriel dos Reis. I built TrustNet to compare NLP models, study how
+    their results change across datasets, and examine the mistakes they make.
+    The FakeNewsNet title-only evaluation is one example of why a strong score
+    on one dataset should be interpreted carefully.
+    """)
