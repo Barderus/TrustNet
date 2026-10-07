@@ -24,7 +24,10 @@ in progress.
 | Stance detection | FNC-1 | TextCNN | 0.8315 | 0.6691 | 0.5228 | 0.5618 | Deep learning baseline |
 | Stance detection | FNC-1 | Bidirectional LSTM | 0.8764 | 0.7033 | 0.6560 | 0.6774 | Deep learning baseline |
 | Stance detection | FNC-1 | DistilBERT | 0.8308 | 0.5759 | 0.5501 | 0.5423 | Latest saved benchmark evaluation |
+| Title-only diagnostic | Kaggle Fake News titles | DistilBERT trained on Kaggle title + body | 0.7795 | 0.8419 | 0.7695 | 0.7643 | Same Kaggle split, titles only |
 | Cross-dataset fake-news evaluation | FakeNewsNet titles | DistilBERT trained on Kaggle | 0.2727 | 0.5449 | 0.5084 | 0.2385 | External title-only domain-shift check |
+| FakeNewsNet in-domain baseline | FakeNewsNet titles | Linear SVC + TF-IDF | 0.8519 | 0.8153 | 0.7665 | 0.7858 | Train/test split within FakeNewsNet titles |
+| FakeNewsNet domain adaptation | FakeNewsNet titles | DistilBERT adapted from Kaggle model | 0.8636 | 0.8339 | 0.7818 | 0.8025 | Fine-tuned and evaluated on FakeNewsNet title split |
 
 ## Transformer Training Evaluation
 
@@ -72,6 +75,17 @@ The error pattern is also useful. FakeNewsNet title-only inputs are much shorter
 than the Kaggle title-plus-body examples, so the drop may reflect domain shift,
 input mismatch, dataset labeling differences, or all three.
 
+To separate input mismatch from domain shift, I also evaluated the Kaggle-trained
+model on Kaggle titles only. That score dropped to 0.7795 accuracy and 0.7643
+macro F1. This shows the model does rely on article body text, but it still
+performs much better on Kaggle titles than on FakeNewsNet titles.
+
+The next check trained models directly on FakeNewsNet titles. A Linear SVC with
+TF-IDF reached 0.8519 accuracy and 0.7858 macro F1, while a DistilBERT model
+adapted from the Kaggle fake-news model reached 0.8636 accuracy and 0.8025 macro
+F1. This suggests FakeNewsNet titles are learnable, but cross-dataset transfer
+from Kaggle to FakeNewsNet is weak without adaptation.
+
 ## Error Analysis and Explainability
 
 The first cross-dataset error-analysis pass saved examples for false positives,
@@ -116,6 +130,9 @@ Current saved benchmark runs:
 - `artifacts/evaluation/cross_dataset/fakenewsnet_titles/20260604T181847Z/`
 - `artifacts/error_analysis/cross_dataset/fakenewsnet_titles/20260604T181847Z/`
 - `artifacts/explainability/cross_dataset/fakenewsnet_titles/20260604T181847Z/`
+- `artifacts/evaluation/title_only/fake-news-kaggle-title-only/20260604T205750Z/`
+- `artifacts/baselines/fakenewsnet_titles/20260604T205833Z/`
+- `artifacts/evaluation/domain_adapted/fakenewsnet_titles/20260604T210318Z/`
 
 ## Next Result Tasks
 
