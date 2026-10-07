@@ -1,27 +1,18 @@
 import torch
 
 def chunk_text(tokenizer, text, max_length=512, stride=50):
-    """
-    Splits text into overlapping token chunks.
-    Returns a list of token ID tensors.
-    """
-    tokens = tokenizer(
+    """Return overlapping chunks with tokenizer-managed special tokens and masks."""
+    return tokenizer(
         text,
+        max_length=max_length,
+        stride=stride,
+        truncation=True,
+        return_overflowing_tokens=True,
+        return_attention_mask=True,
+        padding=True,
         return_tensors="pt",
-        truncation=False,
         verbose=False,
-    )["input_ids"][0]
-
-    chunks = []
-    start = 0
-
-    while start < len(tokens):
-        end = start + max_length
-        chunk_ids = tokens[start:end]
-        chunks.append(chunk_ids)
-        start += max_length - stride  # overlap preserves context
-
-    return chunks
+    )
 
 
 def run_prediction(model, tokenizer, text, temperature=1.0):
@@ -48,10 +39,10 @@ def run_prediction_chunked(model, tokenizer, text, temperature=1.0):
     all_probs = []
 
     with torch.no_grad():
-        for chunk in chunks:
+        for chunk_index in range(len(chunks["input_ids"])):
             inputs = {
-                "input_ids": chunk.unsqueeze(0),
-                "attention_mask": torch.ones_like(chunk).unsqueeze(0)
+                "input_ids": chunks["input_ids"][chunk_index].unsqueeze(0),
+                "attention_mask": chunks["attention_mask"][chunk_index].unsqueeze(0),
             }
 
             outputs = model(**inputs)
@@ -59,14 +50,21 @@ def run_prediction_chunked(model, tokenizer, text, temperature=1.0):
             probs = torch.softmax(logits / temperature, dim=1)
             all_probs.append(probs)
 
-    all_probs = torch.cat(all_probs, dim=0)        # [num_chunks, num_labels]
-    mean_probs = torch.mean(all_probs, dim=0)      # aggregate
+    all_probs = torch.cat(all_probs, dim=0)
+    mean_probs = torch.mean(all_probs, dim=0)
     pred = mean_probs.argmax().item()
 
-    # Identify most influential chunk (for explainability)
-    best_chunk_idx = all_probs.max(dim=1).values.argmax().item()
+    best_chunk_idx = all_probs[:, pred].argmax().item()
+    best_chunk_ids = chunks["input_ids"][best_chunk_idx][
+        chunks["attention_mask"][best_chunk_idx].bool()
+    ]
+    best_text = tokenizer.decode(
+        best_chunk_ids[1:-1],
+        skip_special_tokens=False,
+        clean_up_tokenization_spaces=False,
+    )
 
-    return pred, mean_probs.cpu().numpy(), best_chunk_idx
+    return pred, mean_probs.cpu().numpy(), best_text
 
 
 def predict_text(model, tokenizer, text, temperature=1.0):
@@ -82,25 +80,19 @@ def predict_text(model, tokenizer, text, temperature=1.0):
     if token_count <= 512:
         pred, probs = run_prediction(model, tokenizer, text, temperature)
         return pred, probs, text
-    else:
-        pred, probs, best_idx = run_prediction_chunked(
-            model, tokenizer, text, temperature
-        )
-
-        chunks = chunk_text(tokenizer, text)
-        best_chunk = chunks[best_idx]
-        best_text = tokenizer.decode(best_chunk, skip_special_tokens=True)
-
-        return pred, probs, best_text
+    pred, probs, best_text = run_prediction_chunked(
+        model, tokenizer, text, temperature
+    )
+    return pred, probs, best_text
 
 
 
-def get_word_attributions(model, tokenizer, text):
+def get_word_attributions(model, tokenizer, text, class_index=None):
     from transformers_interpret import SequenceClassificationExplainer
 
     explainer = SequenceClassificationExplainer(model, tokenizer)
 
-    return explainer(text)
+    return explainer(text, index=class_index)
 
 def merge_wordpiece_tokens(attributions):
     """

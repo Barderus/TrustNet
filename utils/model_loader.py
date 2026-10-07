@@ -1,6 +1,6 @@
 from functools import lru_cache
 
-from transformers import DistilBertForSequenceClassification, DistilBertTokenizer
+from transformers import DistilBertForSequenceClassification, DistilBertTokenizerFast
 
 from utils.project_config import get_model_paths
 
@@ -17,7 +17,7 @@ def _load_model_bundle(model_key):
         )
 
     model = DistilBertForSequenceClassification.from_pretrained(model_path)
-    tokenizer = DistilBertTokenizer.from_pretrained(tokenizer_path)
+    tokenizer = DistilBertTokenizerFast.from_pretrained(tokenizer_path)
     model.eval()
     return model, tokenizer
 
