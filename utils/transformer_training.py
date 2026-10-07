@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 import torch
 from sklearn.metrics import accuracy_score, precision_recall_fscore_support
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import GroupShuffleSplit
 from transformers import (
     DistilBertForSequenceClassification,
     DistilBertTokenizerFast,
@@ -13,6 +13,14 @@ from transformers import (
     TrainingArguments,
 )
 
+from utils.datasets import (
+    GROUPED_SPLIT_VERSION,
+    fake_news_group_keys,
+    load_fake_news_kaggle_bundle,
+    load_stance_detection_bundle,
+    near_duplicate_eval_texts,
+    stance_group_keys,
+)
 from utils.project_config import DATA_DIR, MODEL_PATHS
 
 
@@ -127,6 +135,57 @@ def _prepare_labels(frame: pd.DataFrame, config: TransformerTrainingConfig) -> p
     return labels.astype(int)
 
 
+def prepare_training_split(config: TransformerTrainingConfig):
+    frame = _load_training_frame(config)
+    data_dir = config.data_path.parent.parent
+    if config.task_name == "fake_news":
+        kaggle = load_fake_news_kaggle_bundle(
+            data_dir=data_dir,
+            test_size=config.test_size,
+            random_state=config.random_state,
+        )
+        frame["split_group"] = fake_news_group_keys(
+            frame["clean_text"], frame[config.text_column]
+        )
+        frame = frame.loc[
+            ~frame["split_group"].isin(set(kaggle.test["split_group"]))
+        ].copy()
+        test_texts = set(kaggle.test["model_input"])
+        overlapping_texts = test_texts | near_duplicate_eval_texts(
+            test_texts, frame[config.text_column].astype(str)
+        )
+        frame = frame.loc[~frame[config.text_column].isin(overlapping_texts)].copy()
+    elif config.task_name == "stance":
+        competition = load_stance_detection_bundle(data_dir=data_dir)
+        frame = frame.loc[
+            frame["Body ID"].isin(set(competition.train["Body ID"]))
+        ].copy()
+        frame["split_group"] = stance_group_keys(
+            frame["articleBody"], frame["Body ID"]
+        )
+    else:
+        raise ValueError(f"Unknown training task: {config.task_name}")
+
+    labels = _prepare_labels(frame, config)
+    splitter = GroupShuffleSplit(
+        n_splits=1, test_size=config.test_size, random_state=config.random_state
+    )
+    train_indices, eval_indices = next(
+        splitter.split(frame, labels, groups=frame["split_group"])
+    )
+    train_frame = frame.iloc[train_indices].copy()
+    eval_frame = frame.iloc[eval_indices].copy()
+    if config.task_name == "fake_news":
+        train_texts = set(train_frame[config.text_column].astype(str))
+        overlapping_texts = train_texts | near_duplicate_eval_texts(
+            train_texts, eval_frame[config.text_column].astype(str)
+        )
+        eval_frame = eval_frame.loc[
+            ~eval_frame[config.text_column].isin(overlapping_texts)
+        ].copy()
+    return train_frame, eval_frame
+
+
 def _compute_metrics(eval_pred) -> dict:
     logits, labels = eval_pred
     predictions = np.argmax(logits, axis=-1)
@@ -146,15 +205,22 @@ def _compute_metrics(eval_pred) -> dict:
 
 
 def train_transformer(config: TransformerTrainingConfig) -> Path:
-    frame = _load_training_frame(config)
-    labels = _prepare_labels(frame, config)
-
-    train_texts, eval_texts, train_labels, eval_labels = train_test_split(
-        frame[config.text_column].astype(str).tolist(),
-        labels.tolist(),
-        test_size=config.test_size,
-        random_state=config.random_state,
-        stratify=labels,
+    train_frame, eval_frame = prepare_training_split(config)
+    train_texts = train_frame[config.text_column].astype(str).tolist()
+    eval_texts = eval_frame[config.text_column].astype(str).tolist()
+    train_labels = _prepare_labels(train_frame, config).tolist()
+    eval_labels = _prepare_labels(eval_frame, config).tolist()
+    print(
+        f"Training rows: {len(train_frame)}, "
+        f"labels: {train_frame[config.label_column].value_counts().to_dict()}"
+    )
+    print(
+        f"Validation rows: {len(eval_frame)}, "
+        f"labels: {eval_frame[config.label_column].value_counts().to_dict()}"
+    )
+    print(
+        f"Split groups: {train_frame['split_group'].nunique()} train, "
+        f"{eval_frame['split_group'].nunique()} validation"
     )
 
     tokenizer = DistilBertTokenizerFast.from_pretrained(config.pretrained_model_name)
@@ -216,6 +282,7 @@ def train_transformer(config: TransformerTrainingConfig) -> Path:
     metrics = trainer.evaluate()
     trainer.save_metrics("eval", metrics)
 
+    model.config.trustnet_split_version = GROUPED_SPLIT_VERSION
     config.model_output_dir.mkdir(parents=True, exist_ok=True)
     config.tokenizer_output_dir.mkdir(parents=True, exist_ok=True)
     model.save_pretrained(config.model_output_dir)
