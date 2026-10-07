@@ -18,6 +18,7 @@ def _load_model_bundle(model_key):
 
     model = DistilBertForSequenceClassification.from_pretrained(model_path)
     tokenizer = DistilBertTokenizer.from_pretrained(tokenizer_path)
+    model.eval()
     return model, tokenizer
 
 
