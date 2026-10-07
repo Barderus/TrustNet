@@ -1,4 +1,9 @@
 from pathlib import Path
+import sys
+
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
 
 from utils.classical_baselines import (
     create_baseline_run_dir,
@@ -6,12 +11,11 @@ from utils.classical_baselines import (
     load_stance_baseline_dataset,
     run_baselines,
 )
+from utils.project_config import ARTIFACTS_DIR, DATA_DIR
 
 
 TASK = "all"
 LIMIT = None
-DATA_DIR = Path(r"C:\Users\Barderus_Legion\PycharmProjects\TrustNet\data")
-ARTIFACTS_DIR = Path(r"C:\Users\Barderus_Legion\PycharmProjects\TrustNet\artifacts")
 
 
 def run_task(task_name: str) -> None:

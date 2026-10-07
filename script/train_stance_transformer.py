@@ -1,20 +1,18 @@
 from pathlib import Path
+import sys
+
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
 
 from utils.transformer_training import TransformerTrainingConfig, train_transformer
+from utils.project_config import ARTIFACTS_DIR, DATA_DIR, MODEL_PATHS
 
 
-DATA_PATH = Path(
-    r"C:\Users\Barderus_Legion\PycharmProjects\TrustNet\data\preprocessed\stance_preprocessed.csv"
-)
-MODEL_OUTPUT_DIR = Path(
-    r"C:\Users\Barderus_Legion\PycharmProjects\TrustNet\models\stance_detection_model\distilbert_stanceD"
-)
-TOKENIZER_OUTPUT_DIR = Path(
-    r"C:\Users\Barderus_Legion\PycharmProjects\TrustNet\models\stance_detection_model\distilbert_tokenizer_stanceD"
-)
-TRAINING_OUTPUT_DIR = Path(
-    r"C:\Users\Barderus_Legion\PycharmProjects\TrustNet\artifacts\training\stance_transformer"
-)
+DATA_PATH = DATA_DIR / "preprocessed" / "stance_preprocessed.csv"
+MODEL_OUTPUT_DIR = MODEL_PATHS["stance"]["model"]
+TOKENIZER_OUTPUT_DIR = MODEL_PATHS["stance"]["tokenizer"]
+TRAINING_OUTPUT_DIR = ARTIFACTS_DIR / "training" / "stance_transformer"
 
 TEXT_COLUMN = "combined_text"
 LABEL_COLUMN = "stance_label"

@@ -1,14 +1,16 @@
 from pathlib import Path
+import sys
+
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
 
 from utils.deep_learning_models import DeepLearningConfig, run_deep_learning_experiments
+from utils.project_config import ARTIFACTS_DIR, DATA_DIR
 
 
-DATA_PATH = Path(
-    r"C:\Users\Barderus_Legion\PycharmProjects\TrustNet\data\preprocessed\stance_preprocessed.csv"
-)
-OUTPUT_DIR = Path(
-    r"C:\Users\Barderus_Legion\PycharmProjects\TrustNet\artifacts\deep_learning\stance"
-)
+DATA_PATH = DATA_DIR / "preprocessed" / "stance_preprocessed.csv"
+OUTPUT_DIR = ARTIFACTS_DIR / "deep_learning" / "stance"
 
 TEXT_COLUMN = "combined_text"
 LABEL_COLUMN = "stance_label"

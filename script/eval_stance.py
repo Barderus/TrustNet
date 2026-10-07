@@ -1,17 +1,23 @@
 from pathlib import Path
+import sys
 import warnings
 
 import shap
 import torch
 
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+
 from utils.model_loader import load_stance_model
 from utils.prediction import predict_text
+from utils.project_config import ARTIFACTS_DIR
 
 
 HEADLINE = "Enter a headline or claim here."
 BODY = "Enter the article body here."
 SAVE_SHAP = False
-OUTPUT_DIR = Path(r"C:\Users\Barderus_Legion\PycharmProjects\TrustNet\artifacts\explainability")
+OUTPUT_DIR = ARTIFACTS_DIR / "explainability"
 LABELS = ["agree", "disagree", "discuss", "unrelated"]
 
 

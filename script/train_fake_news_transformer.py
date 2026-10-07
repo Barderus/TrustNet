@@ -1,20 +1,18 @@
 from pathlib import Path
+import sys
+
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
 
 from utils.transformer_training import TransformerTrainingConfig, train_transformer
+from utils.project_config import ARTIFACTS_DIR, DATA_DIR, MODEL_PATHS
 
 
-DATA_PATH = Path(
-    r"C:\Users\Barderus_Legion\PycharmProjects\TrustNet\data\preprocessed\fakenews_preprocessed.csv"
-)
-MODEL_OUTPUT_DIR = Path(
-    r"C:\Users\Barderus_Legion\PycharmProjects\TrustNet\models\fake_news_model\distilbert_fakenews_model"
-)
-TOKENIZER_OUTPUT_DIR = Path(
-    r"C:\Users\Barderus_Legion\PycharmProjects\TrustNet\models\fake_news_model\distilbert_fakenews_tokenizer"
-)
-TRAINING_OUTPUT_DIR = Path(
-    r"C:\Users\Barderus_Legion\PycharmProjects\TrustNet\artifacts\training\fake_news_transformer"
-)
+DATA_PATH = DATA_DIR / "preprocessed" / "fakenews_preprocessed.csv"
+MODEL_OUTPUT_DIR = MODEL_PATHS["fake_news"]["model"]
+TOKENIZER_OUTPUT_DIR = MODEL_PATHS["fake_news"]["tokenizer"]
+TRAINING_OUTPUT_DIR = ARTIFACTS_DIR / "training" / "fake_news_transformer"
 
 TEXT_COLUMN = "prep_text"
 LABEL_COLUMN = "real"

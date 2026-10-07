@@ -1,6 +1,11 @@
 from pathlib import Path
+import sys
 
 from tqdm import tqdm
+
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
 
 from utils.datasets import (
     DatasetBundle,
@@ -15,11 +20,11 @@ from utils.evaluation import (
 )
 from utils.model_loader import load_fake_news_model, load_stance_model
 from utils.prediction import predict_text
+from utils.project_config import ARTIFACTS_DIR
 
 
 TASK = "all"
 LIMIT = None
-ARTIFACTS_DIR = Path(r"C:\Users\Barderus_Legion\PycharmProjects\TrustNet\artifacts")
 
 
 def _evaluate_bundle(

@@ -1,6 +1,11 @@
 from pathlib import Path
+import sys
 
 import pandas as pd
+
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
 
 from utils.preprocessing import (
     build_fakenews_preprocessed,
@@ -8,12 +13,12 @@ from utils.preprocessing import (
     build_master_stance,
     build_stance_preprocessed,
 )
+from utils.project_config import DATA_DIR
 
 
 TASK = "all"
 STAGE = "all"
 INCLUDE_ENTITIES = False
-DATA_DIR = Path(r"C:\Users\Barderus_Legion\PycharmProjects\TrustNet\data")
 PREPROCESSED_DIR = DATA_DIR / "preprocessed"
 
 
