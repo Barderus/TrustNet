@@ -19,6 +19,16 @@ from sklearn.metrics import (
     roc_auc_score,
 )
 
+from utils.datasets import GROUPED_SPLIT_VERSION
+
+
+def require_grouped_split_model(model):
+    if getattr(model.config, "trustnet_split_version", None) != GROUPED_SPLIT_VERSION:
+        raise ValueError(
+            "This saved model predates the grouped evaluation split. "
+            "Retrain the transformer before generating benchmark results."
+        )
+
 
 def normalize_probability_rows(probabilities: list[list[float]]) -> list[list[float]]:
     normalized: list[list[float]] = []

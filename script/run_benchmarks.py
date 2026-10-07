@@ -16,6 +16,7 @@ from utils.evaluation import (
     build_predictions_frame,
     compute_metrics,
     create_run_directory,
+    require_grouped_split_model,
     save_evaluation_outputs,
 )
 from utils.model_loader import load_fake_news_model, load_stance_model
@@ -85,6 +86,7 @@ def _evaluate_bundle(
 def run_fake_news_benchmark(output_base_dir: Path, limit: int | None) -> Path:
     bundle = load_fake_news_kaggle_bundle()
     model, tokenizer = load_fake_news_model()
+    require_grouped_split_model(model)
     return _evaluate_bundle(
         bundle=bundle,
         model=model,
@@ -98,6 +100,7 @@ def run_fake_news_benchmark(output_base_dir: Path, limit: int | None) -> Path:
 def run_stance_benchmark(output_base_dir: Path, limit: int | None) -> Path:
     bundle = load_stance_detection_bundle()
     model, tokenizer = load_stance_model()
+    require_grouped_split_model(model)
     return _evaluate_bundle(
         bundle=bundle,
         model=model,
