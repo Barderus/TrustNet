@@ -214,7 +214,9 @@ def render():
 
         try:
             with st.spinner("Explaining prediction..."):
-                word_attributions = get_word_attributions(model, tokenizer, explain_text)
+                word_attributions = get_word_attributions(
+                    model, tokenizer, explain_text, class_index=int(pred)
+                )
         except Exception as exc:
             st.warning(f"Prediction succeeded, but the token explanation failed: {exc}")
             st.stop()
