@@ -100,13 +100,7 @@ def get_word_attributions(model, tokenizer, text):
 
     explainer = SequenceClassificationExplainer(model, tokenizer)
 
-    try:
-        # This returns a list of tuples: (token, attribution)
-        attributions = explainer(text)
-    except Exception as e:
-        return [("ERROR", str(e))]
-
-    return attributions
+    return explainer(text)
 
 def merge_wordpiece_tokens(attributions):
     """

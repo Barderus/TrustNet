@@ -1,3 +1,4 @@
+from html import escape
 from pathlib import Path
 import sys
 
@@ -16,6 +17,10 @@ from utils.prediction import (
     top_k_attributions,
 )
 from utils.text_processing import extract_text_from_docx, extract_text_from_pdf
+
+
+MAX_UPLOAD_BYTES = 10 * 1024 * 1024
+MAX_TEXT_CHARS = 20000
 
 
 def render():
@@ -51,7 +56,7 @@ def render():
 
     st.markdown(
         """
-        TrustNet is a research platform exploring misinformation detection
+        TrustNet is a capstone project exploring misinformation detection
         and stance classification using DistilBERT-based NLP models.
     """,
         unsafe_allow_html=True,
@@ -105,6 +110,7 @@ def render():
 
     with tab_file:
         user_file = st.file_uploader("Upload PDF or DOCX", type=["pdf", "docx"])
+        st.caption("Up to 10 MB; PDFs up to 20 pages. Text is limited to 20,000 characters.")
 
     col1, col2, col3 = st.columns([1, 1, 1])
     with col2:
@@ -124,44 +130,60 @@ def render():
 
         user_text = st.session_state.user_text
         if user_file:
-            if user_file.type == "application/pdf":
-                user_text = extract_text_from_pdf(user_file)
-            else:
-                user_text = extract_text_from_docx(user_file)
+            if user_file.size > MAX_UPLOAD_BYTES:
+                st.error("Uploads are limited to 10 MB.")
+                st.stop()
+            try:
+                with st.spinner("Reading file..."):
+                    if user_file.type == "application/pdf":
+                        user_text = extract_text_from_pdf(user_file)
+                    else:
+                        user_text = extract_text_from_docx(user_file)
+            except Exception as exc:
+                st.error(f"Could not read the uploaded file: {exc}")
+                st.stop()
 
         if not user_text.strip():
             st.error("Please enter or upload text.")
             st.stop()
 
-        try:
-            if task == "Fake News Detection":
-                model, tokenizer = load_fake_news_model()
-                labels = [model.config.id2label[i] for i in range(model.config.num_labels)]
-                model_input = user_text
-            else:
-                model, tokenizer = load_stance_model()
-                labels = ["AGREE", "DISAGREE", "DISCUSS", "UNRELATED"]
-                model_input = headline + " [SEP] " + user_text
+        if len(user_text) > MAX_TEXT_CHARS:
+            st.error("Text is limited to 20,000 characters.")
+            st.stop()
 
-            pred, probs, explain_text = predict_text(
-                model,
-                tokenizer,
-                model_input,
-                temperature=1.0,
-            )
+        try:
+            with st.spinner("Running prediction..."):
+                if task == "Fake News Detection":
+                    model, tokenizer = load_fake_news_model()
+                    labels = [model.config.id2label[i] for i in range(model.config.num_labels)]
+                    model_input = user_text
+                else:
+                    model, tokenizer = load_stance_model()
+                    labels = ["AGREE", "DISAGREE", "DISCUSS", "UNRELATED"]
+                    model_input = headline + " [SEP] " + user_text
+
+                pred, probs, explain_text = predict_text(
+                    model,
+                    tokenizer,
+                    model_input,
+                    temperature=1.0,
+                )
         except FileNotFoundError as exc:
             st.error(str(exc))
+            st.stop()
+        except Exception as exc:
+            st.error(f"Prediction failed: {exc}")
             st.stop()
 
         rows_html = ""
         for label, probability in zip(labels, probs):
-            rows_html += f"<tr><td>{label}</td><td>{probability:.4f}</td></tr>"
+            rows_html += f"<tr><td>{escape(label)}</td><td>{probability:.4f}</td></tr>"
 
         st.markdown(
             f"""
             <div class="result-card">
               <div class="result-title">
-                Prediction: <span class="prediction-value">{labels[pred]}</span>
+                Prediction: <span class="prediction-value">{escape(labels[pred])}</span>
               </div>
 
               <table class="result-table">
@@ -173,7 +195,22 @@ def render():
             unsafe_allow_html=True,
         )
 
-        word_attributions = get_word_attributions(model, tokenizer, explain_text)
+        st.caption(
+            "This prediction reflects patterns in training data; "
+            "it does not verify the article's facts."
+        )
+
+        try:
+            with st.spinner("Explaining prediction..."):
+                word_attributions = get_word_attributions(model, tokenizer, explain_text)
+        except Exception as exc:
+            st.warning(f"Prediction succeeded, but the token explanation failed: {exc}")
+            st.stop()
+
+        if not word_attributions:
+            st.warning("Prediction succeeded, but no token explanation was available.")
+            st.stop()
+
         word_attributions = clean_special_tokens(word_attributions)
         word_attributions = merge_wordpiece_tokens(word_attributions)
         word_attributions = top_k_attributions(word_attributions, k=20)
@@ -183,7 +220,7 @@ def render():
             color = "#22c55e" if score > 0 else "#ef4444" if score < 0 else "#374151"
             rows += f"""
                 <tr>
-                    <td style="padding: 6px 10px; border: 1px solid #e5e7eb;">{token}</td>
+                    <td style="padding: 6px 10px; border: 1px solid #e5e7eb;">{escape(token)}</td>
                     <td style="padding: 6px 10px; border: 1px solid #e5e7eb; color:{color};">
                         {score:.4f}
                     </td>
