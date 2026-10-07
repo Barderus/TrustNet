@@ -60,6 +60,31 @@ def load_stance_baseline_dataset(data_dir: Path = DATA_DIR) -> BaselineDataset:
     )
 
 
+def load_fakenewsnet_title_baseline_dataset(data_dir: Path = DATA_DIR) -> BaselineDataset:
+    base_dir = data_dir / "FakeNewsNet"
+    frames = []
+    for file_name, label in [
+        ("gossipcop_fake.csv", "FAKE"),
+        ("politifact_fake.csv", "FAKE"),
+        ("gossipcop_real.csv", "REAL"),
+        ("politifact_real.csv", "REAL"),
+    ]:
+        frame = pd.read_csv(base_dir / file_name)
+        frame = frame.assign(label=label, source_file=file_name)
+        frames.append(frame)
+
+    full_frame = pd.concat(frames, ignore_index=True)
+    full_frame["title_text"] = full_frame["title"].fillna("").astype(str).str.strip()
+    full_frame = full_frame.loc[full_frame["title_text"].str.len() > 0].copy()
+    return BaselineDataset(
+        task_name="fakenewsnet_titles",
+        frame=full_frame.reset_index(drop=True),
+        text_column="title_text",
+        label_column="label",
+        labels=["FAKE", "REAL"],
+    )
+
+
 def baseline_models(random_state: int = 42) -> dict[str, Pipeline]:
     def vectorizer() -> TfidfVectorizer:
         return TfidfVectorizer(
