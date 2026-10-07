@@ -17,6 +17,7 @@ from utils.evaluation import (
 )
 from utils.model_loader import load_fake_news_model
 from utils.project_config import ARTIFACTS_DIR, DATA_DIR
+from utils.preprocessing import clean_for_model
 
 
 DATASET = "fakenewsnet_titles"
@@ -42,6 +43,7 @@ def load_fakenewsnet_titles(data_dir: Path = DATA_DIR) -> pd.DataFrame:
     full_frame = pd.concat(frames, ignore_index=True)
     full_frame["input_text"] = full_frame["title"].fillna("").astype(str).str.strip()
     full_frame = full_frame.loc[full_frame["input_text"].str.len() > 0].copy()
+    full_frame["model_input"] = full_frame["input_text"].apply(clean_for_model)
     return full_frame.reset_index(drop=True)
 
 
@@ -96,7 +98,7 @@ def main() -> None:
     predicted_indices, predicted_labels, probabilities = predict_batches(
         model=model,
         tokenizer=tokenizer,
-        texts=evaluation_frame["input_text"].tolist(),
+        texts=evaluation_frame["model_input"].tolist(),
     )
 
     true_labels = evaluation_frame["label"].tolist()
