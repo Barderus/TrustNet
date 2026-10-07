@@ -9,6 +9,7 @@ if str(PROJECT_ROOT) not in sys.path:
 import streamlit as st
 
 from utils.model_loader import load_fake_news_model, load_stance_model
+from utils.preprocessing import clean_for_model, prepare_stance_input
 from utils.prediction import (
     clean_special_tokens,
     get_word_attributions,
@@ -151,16 +152,27 @@ def render():
             st.error("Text is limited to 20,000 characters.")
             st.stop()
 
+        cleaned_body = clean_for_model(user_text)
+        if not cleaned_body:
+            st.error("Please enter text with readable words.")
+            st.stop()
+
+        if task == "Fake News Detection":
+            model_input = cleaned_body
+        else:
+            if not clean_for_model(headline):
+                st.error("Please enter a headline with readable words.")
+                st.stop()
+            model_input = prepare_stance_input(headline, user_text)
+
         try:
             with st.spinner("Running prediction..."):
                 if task == "Fake News Detection":
                     model, tokenizer = load_fake_news_model()
                     labels = [model.config.id2label[i] for i in range(model.config.num_labels)]
-                    model_input = user_text
                 else:
                     model, tokenizer = load_stance_model()
-                    labels = ["AGREE", "DISAGREE", "DISCUSS", "UNRELATED"]
-                    model_input = headline + " [SEP] " + user_text
+                    labels = [model.config.id2label[i] for i in range(model.config.num_labels)]
 
                 pred, probs, explain_text = predict_text(
                     model,
