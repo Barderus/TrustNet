@@ -46,6 +46,10 @@ def clean_for_model(text: object) -> str:
     return " ".join(tokens)
 
 
+def prepare_stance_input(headline, body):
+    return f"{clean_for_model(headline)} [SEP] {clean_for_model(body)}"
+
+
 def word_count(text: object) -> int:
     return len(normalize_text(text).split())
 

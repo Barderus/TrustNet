@@ -11,6 +11,7 @@ if str(PROJECT_ROOT) not in sys.path:
 
 from utils.model_loader import load_stance_model
 from utils.prediction import predict_text
+from utils.preprocessing import prepare_stance_input
 from utils.project_config import ARTIFACTS_DIR
 
 
@@ -29,7 +30,7 @@ warnings.filterwarnings(
 
 
 def build_stance_input(headline: str, body: str) -> str:
-    return f"{headline.strip()} [SEP] {body.strip()}"
+    return prepare_stance_input(headline, body)
 
 
 def make_shap_predict_fn(model, tokenizer):
