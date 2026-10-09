@@ -1,23 +1,13 @@
-from pathlib import Path
-import sys
-
 import torch
 from tqdm import tqdm
 
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
-if str(PROJECT_ROOT) not in sys.path:
-    sys.path.append(str(PROJECT_ROOT))
-
-from utils.datasets import DatasetBundle, load_fake_news_kaggle_title_bundle
+from utils.datasets import load_fake_news_kaggle_title_bundle
 from utils.evaluation import (
     build_predictions_frame,
     compute_metrics,
-    create_run_directory,
     require_grouped_split_model,
-    save_evaluation_outputs,
 )
 from utils.model_loader import load_fake_news_model
-from utils.project_config import ARTIFACTS_DIR
 
 
 LIMIT = None
@@ -25,19 +15,19 @@ BATCH_SIZE = 64
 
 
 def predict_batches(
-    bundle: DatasetBundle,
+    bundle,
     model,
     tokenizer,
-    texts: list[str],
-    batch_size: int = BATCH_SIZE,
-) -> tuple[list[int], list[str], list[list[float]]]:
+    texts,
+    batch_size=BATCH_SIZE,
+):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model.to(device)
     model.eval()
 
-    predicted_indices: list[int] = []
-    predicted_labels: list[str] = []
-    probabilities: list[list[float]] = []
+    predicted_indices = []
+    predicted_labels = []
+    probabilities = []
 
     for start in tqdm(range(0, len(texts), batch_size), desc="Evaluating Kaggle titles"):
         batch_texts = texts[start : start + batch_size]
@@ -64,7 +54,7 @@ def predict_batches(
     return predicted_indices, predicted_labels, probabilities
 
 
-def main() -> None:
+def main():
     bundle = load_fake_news_kaggle_title_bundle()
     evaluation_frame = bundle.test.copy()
     if LIMIT is not None:
@@ -98,23 +88,12 @@ def main() -> None:
         labels=bundle.labels,
     )
 
-    output_dir = create_run_directory(ARTIFACTS_DIR, "title_only", bundle.name)
-    save_evaluation_outputs(
-        output_dir=output_dir,
-        predictions=predictions,
-        metrics=metrics,
-        true_labels=true_labels,
-        predicted_labels=predicted_labels,
-        probabilities=probabilities,
-        labels=bundle.labels,
-    )
-
-    print(f"Saved title-only evaluation artifacts to: {output_dir}")
     print(
         "Accuracy: "
         f"{metrics['accuracy']:.4f}, "
         f"Macro F1: {metrics['macro_f1']:.4f}"
     )
+    return predictions, metrics
 
 
 if __name__ == "__main__":

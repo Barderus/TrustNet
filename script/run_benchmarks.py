@@ -1,27 +1,13 @@
-from pathlib import Path
-import sys
-
 from tqdm import tqdm
 
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
-if str(PROJECT_ROOT) not in sys.path:
-    sys.path.insert(0, str(PROJECT_ROOT))
-
-from utils.datasets import (
-    DatasetBundle,
-    load_fake_news_kaggle_bundle,
-    load_stance_detection_bundle,
-)
+from utils.datasets import load_fake_news_kaggle_bundle, load_stance_detection_bundle
 from utils.evaluation import (
     build_predictions_frame,
     compute_metrics,
-    create_run_directory,
     require_grouped_split_model,
-    save_evaluation_outputs,
 )
 from utils.model_loader import load_fake_news_model, load_stance_model
 from utils.prediction import predict_text
-from utils.project_config import ARTIFACTS_DIR
 
 
 TASK = "all"
@@ -29,21 +15,20 @@ LIMIT = None
 
 
 def _evaluate_bundle(
-    bundle: DatasetBundle,
+    bundle,
     model,
     tokenizer,
-    task_name: str,
-    output_base_dir: Path,
-    limit: int | None = None,
-) -> Path:
+    task_name,
+    limit=None,
+):
     evaluation_frame = bundle.test.copy()
     if limit is not None:
         evaluation_frame = evaluation_frame.head(limit).copy()
 
     true_labels = evaluation_frame[bundle.label_column].tolist()
-    predicted_indices: list[int] = []
-    predicted_labels: list[str] = []
-    probabilities: list[list[float]] = []
+    predicted_indices = []
+    predicted_labels = []
+    probabilities = []
 
     for input_text in tqdm(
         evaluation_frame[bundle.text_column].tolist(),
@@ -70,20 +55,10 @@ def _evaluate_bundle(
         labels=bundle.labels,
     )
 
-    output_dir = create_run_directory(output_base_dir, task_name, bundle.name)
-    save_evaluation_outputs(
-        output_dir=output_dir,
-        predictions=predictions,
-        metrics=metrics,
-        true_labels=true_labels,
-        predicted_labels=predicted_labels,
-        probabilities=probabilities,
-        labels=bundle.labels,
-    )
-    return output_dir
+    return predictions, metrics
 
 
-def run_fake_news_benchmark(output_base_dir: Path, limit: int | None) -> Path:
+def run_fake_news_benchmark(limit=None):
     bundle = load_fake_news_kaggle_bundle()
     model, tokenizer = load_fake_news_model()
     require_grouped_split_model(model)
@@ -92,12 +67,11 @@ def run_fake_news_benchmark(output_base_dir: Path, limit: int | None) -> Path:
         model=model,
         tokenizer=tokenizer,
         task_name="fake_news",
-        output_base_dir=output_base_dir,
         limit=limit,
     )
 
 
-def run_stance_benchmark(output_base_dir: Path, limit: int | None) -> Path:
+def run_stance_benchmark(limit=None):
     bundle = load_stance_detection_bundle()
     model, tokenizer = load_stance_model()
     require_grouped_split_model(model)
@@ -106,19 +80,24 @@ def run_stance_benchmark(output_base_dir: Path, limit: int | None) -> Path:
         model=model,
         tokenizer=tokenizer,
         task_name="stance",
-        output_base_dir=output_base_dir,
         limit=limit,
     )
 
 
-def main() -> None:
+def main():
     if TASK in {"fake_news", "all"}:
-        fake_news_dir = run_fake_news_benchmark(ARTIFACTS_DIR, LIMIT)
-        print(f"Fake news evaluation artifacts saved to: {fake_news_dir}")
+        _, metrics = run_fake_news_benchmark(LIMIT)
+        print(
+            f"Fake news: accuracy {metrics['accuracy']:.4f}, "
+            f"macro F1 {metrics['macro_f1']:.4f}"
+        )
 
     if TASK in {"stance", "all"}:
-        stance_dir = run_stance_benchmark(ARTIFACTS_DIR, LIMIT)
-        print(f"Stance evaluation artifacts saved to: {stance_dir}")
+        _, metrics = run_stance_benchmark(LIMIT)
+        print(
+            f"Stance: accuracy {metrics['accuracy']:.4f}, "
+            f"macro F1 {metrics['macro_f1']:.4f}"
+        )
 
 
 if __name__ == "__main__":

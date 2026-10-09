@@ -1,33 +1,21 @@
-from pathlib import Path
-import sys
-
 import pandas as pd
 import torch
 from tqdm import tqdm
 
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
-if str(PROJECT_ROOT) not in sys.path:
-    sys.path.append(str(PROJECT_ROOT))
-
 from utils.evaluation import (
     build_predictions_frame,
     compute_metrics,
-    create_run_directory,
-    save_evaluation_outputs,
 )
 from utils.model_loader import load_fake_news_model
-from utils.project_config import ARTIFACTS_DIR, DATA_DIR
 from utils.preprocessing import clean_for_model
 
 
-DATASET = "fakenewsnet_titles"
 LIMIT = None
 BATCH_SIZE = 64
 LABELS = ["FAKE", "REAL"]
 
 
-def load_fakenewsnet_titles(data_dir: Path = DATA_DIR) -> pd.DataFrame:
-    base_dir = data_dir / "FakeNewsNet"
+def load_fakenewsnet_titles():
     frames = []
     for file_name, label in [
         ("gossipcop_fake.csv", "FAKE"),
@@ -35,7 +23,7 @@ def load_fakenewsnet_titles(data_dir: Path = DATA_DIR) -> pd.DataFrame:
         ("gossipcop_real.csv", "REAL"),
         ("politifact_real.csv", "REAL"),
     ]:
-        path = base_dir / file_name
+        path = f"data/FakeNewsNet/{file_name}"
         frame = pd.read_csv(path)
         frame = frame.assign(label=label, source_file=file_name)
         frames.append(frame)
@@ -50,16 +38,16 @@ def load_fakenewsnet_titles(data_dir: Path = DATA_DIR) -> pd.DataFrame:
 def predict_batches(
     model,
     tokenizer,
-    texts: list[str],
-    batch_size: int = BATCH_SIZE,
-) -> tuple[list[int], list[str], list[list[float]]]:
+    texts,
+    batch_size=BATCH_SIZE,
+):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model.to(device)
     model.eval()
 
-    predicted_indices: list[int] = []
-    predicted_labels: list[str] = []
-    probabilities: list[list[float]] = []
+    predicted_indices = []
+    predicted_labels = []
+    probabilities = []
 
     for start in tqdm(range(0, len(texts), batch_size), desc="Evaluating FakeNewsNet"):
         batch_texts = texts[start : start + batch_size]
@@ -86,7 +74,7 @@ def predict_batches(
     return predicted_indices, predicted_labels, probabilities
 
 
-def main() -> None:
+def main():
     evaluation_frame = load_fakenewsnet_titles()
     if LIMIT is not None:
         evaluation_frame = evaluation_frame.sample(
@@ -117,23 +105,12 @@ def main() -> None:
         labels=LABELS,
     )
 
-    output_dir = create_run_directory(ARTIFACTS_DIR, "cross_dataset", DATASET)
-    save_evaluation_outputs(
-        output_dir=output_dir,
-        predictions=predictions,
-        metrics=metrics,
-        true_labels=true_labels,
-        predicted_labels=predicted_labels,
-        probabilities=probabilities,
-        labels=LABELS,
-    )
-
-    print(f"Saved cross-dataset evaluation artifacts to: {output_dir}")
     print(
         "Accuracy: "
         f"{metrics['accuracy']:.4f}, "
         f"Macro F1: {metrics['macro_f1']:.4f}"
     )
+    return predictions, metrics
 
 
 if __name__ == "__main__":
