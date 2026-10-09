@@ -1,141 +1,26 @@
 # Results Summary
 
-This page summarizes the benchmark results that are currently saved in
-`artifacts/`. The numbers are useful, but they should be read with the project
-limitations in mind, especially for fake-news detection where random splits can
-make the task look easier than it may be on new sources.
+## Saved benchmark scores
 
-Cross-dataset evaluation, error analysis, and explainability outputs are still
-in progress.
+The table below comes from saved runs of the grouped-split DistilBERT models. The revised training and evaluation notebooks have not been rerun, so these are the last recorded benchmark results.
 
-## Model Comparison
+| Evaluation | Examples | Accuracy | Macro F1 |
+| --- | ---: | ---: | ---: |
+| Kaggle fake news, title and body | 8,983 | 0.9969 | 0.9969 |
+| FNC-1 competition stance | 25,413 | 0.8912 | 0.6113 |
+| Kaggle fake news, title only | 8,983 | 0.8316 | 0.8259 |
+| FakeNewsNet titles, Kaggle-trained model | 23,196 | 0.2695 | 0.2344 |
 
-| Task | Dataset | Model | Accuracy | Macro Precision | Macro Recall | Macro F1 | Notes |
-| --- | --- | --- | ---: | ---: | ---: | ---: | --- |
-| Fake-news detection | Kaggle Fake News | Logistic Regression + TF-IDF | 0.9891 | 0.9897 | 0.9879 | 0.9888 | Classical baseline |
-| Fake-news detection | Kaggle Fake News | Linear SVC + TF-IDF | 0.9935 | 0.9940 | 0.9927 | 0.9933 | Best classical baseline in saved run |
-| Fake-news detection | Kaggle Fake News | Ridge Classifier + TF-IDF | 0.9926 | 0.9932 | 0.9917 | 0.9924 | Classical baseline |
-| Fake-news detection | Kaggle Fake News | TextCNN | 0.9914 | 0.9909 | 0.9915 | 0.9912 | Deep learning baseline |
-| Fake-news detection | Kaggle Fake News | Bidirectional LSTM | 0.9868 | 0.9855 | 0.9877 | 0.9865 | Deep learning baseline |
-| Fake-news detection | Kaggle Fake News | DistilBERT | 0.9945 | 0.9946 | 0.9944 | 0.9945 | Latest saved benchmark evaluation |
-| Stance detection | FNC-1 | Logistic Regression + TF-IDF | 0.8177 | 0.7051 | 0.4505 | 0.5096 | Classical baseline |
-| Stance detection | FNC-1 | Linear SVC + TF-IDF | 0.8371 | 0.7081 | 0.5140 | 0.5752 | Best classical baseline in saved run |
-| Stance detection | FNC-1 | Ridge Classifier + TF-IDF | 0.8258 | 0.6910 | 0.4837 | 0.5432 | Classical baseline |
-| Stance detection | FNC-1 | TextCNN | 0.8315 | 0.6691 | 0.5228 | 0.5618 | Deep learning baseline |
-| Stance detection | FNC-1 | Bidirectional LSTM | 0.8764 | 0.7033 | 0.6560 | 0.6774 | Deep learning baseline |
-| Stance detection | FNC-1 | DistilBERT | 0.8308 | 0.5759 | 0.5501 | 0.5423 | Latest saved benchmark evaluation |
-| Title-only diagnostic | Kaggle Fake News titles | DistilBERT trained on Kaggle title + body | 0.7795 | 0.8419 | 0.7695 | 0.7643 | Same Kaggle split, titles only |
-| Cross-dataset fake-news evaluation | FakeNewsNet titles | DistilBERT trained on Kaggle | 0.2727 | 0.5449 | 0.5084 | 0.2385 | External title-only domain-shift check |
-| FakeNewsNet in-domain baseline | FakeNewsNet titles | Linear SVC + TF-IDF | 0.8519 | 0.8153 | 0.7665 | 0.7858 | Train/test split within FakeNewsNet titles |
-| FakeNewsNet domain adaptation | FakeNewsNet titles | DistilBERT adapted from Kaggle model | 0.8636 | 0.8339 | 0.7818 | 0.8025 | Fine-tuned and evaluated on FakeNewsNet title split |
+## What the scores show
 
-## Transformer Training Evaluation
+The Kaggle title-and-body result is very high, but it describes performance on that grouped Kaggle holdout. It does not show that the model can verify news or work equally well on other publishers. Source and writing-style cues may still help it classify articles.
 
-The transformer training scripts also saved trainer evaluation outputs. I keep
-these numbers separate from the benchmark table because they are useful for
-checking the training run, but the benchmark table is the better place to report
-final results.
+Stance detection is harder than its accuracy suggests. The model correctly identified only 61 of 697 **DISAGREE** pairs. Most competition pairs are **UNRELATED**, so accuracy alone hides how often the model misses a less common stance. Per-class recall makes that weakness clear.
 
-| Task | Model | Accuracy | Macro Precision | Macro Recall | Macro F1 | Source |
-| --- | --- | ---: | ---: | ---: | ---: | --- |
-| Fake-news detection | DistilBERT | 0.9981 | 0.9981 | 0.9981 | 0.9981 | `artifacts/training/fake_news_transformer/eval_results.json` |
-| Stance detection | DistilBERT | 0.9737 | 0.8717 | 0.8650 | 0.8678 | `artifacts/training/stance_transformer/eval_results.json` |
+Removing article bodies also changes the fake-news result. On the same Kaggle holdout, title-only macro F1 fell to 0.8259. On FakeNewsNet titles, the Kaggle-trained model performed much worse and identified only 641 of 17,441 real-labeled titles. That check changes both the dataset and the input format, so the drop cannot be assigned to either change alone. Its predicted probabilities should not be read as certainty that a title is fake.
 
-## Interpretation
+## Comparison and next reading
 
-The fake-news scores are very high across classical, deep learning, and
-transformer models. That is encouraging, but it also means the results need a
-careful follow-up check. A random split may reward patterns that are specific to
-the dataset, such as publisher style, article formatting, topic distribution, or
-duplicate and near-duplicate text.
+On the same grouped benchmark examples, a TF-IDF Linear SVC reached 0.9893 macro F1 for Kaggle fake news and 0.2457 for FNC-1 stance. DistilBERT did better on both, especially stance. Older classical and deep-learning scores used different splits, so they are useful background rather than a direct ranking against these benchmarks.
 
-The stance results show a more difficult problem. Accuracy can look reasonable
-while macro F1 stays much lower because minority stance labels are harder to
-recover. For that reason, stance detection should be discussed with macro F1 and
-per-class examples, not accuracy alone.
-
-## Cross-Dataset Evaluation
-
-The fake-news DistilBERT model was also evaluated on FakeNewsNet titles without
-retraining. This is a stricter check than the Kaggle holdout split because the
-source, topic mix, and input format are different. The Kaggle evaluation uses
-title plus article body, while this FakeNewsNet run uses title only.
-
-| Dataset | Input | Accuracy | Macro F1 | ROC-AUC | Notes |
-| --- | --- | ---: | ---: | ---: | --- |
-| FakeNewsNet | Title only | 0.2727 | 0.2385 | 0.5526 | External domain-shift check |
-
-The result shows weak transfer to FakeNewsNet titles. The model predicted
-`FAKE` for 22,354 of 23,196 examples, which led to many real articles being
-flagged incorrectly. This does not mean the model is useless, but it does show
-that the strong Kaggle holdout result should not be treated as evidence of
-general misinformation detection in the wild.
-
-The error pattern is also useful. FakeNewsNet title-only inputs are much shorter
-than the Kaggle title-plus-body examples, so the drop may reflect domain shift,
-input mismatch, dataset labeling differences, or all three.
-
-To separate input mismatch from domain shift, I also evaluated the Kaggle-trained
-model on Kaggle titles only. That score dropped to 0.7795 accuracy and 0.7643
-macro F1. This shows the model does rely on article body text, but it still
-performs much better on Kaggle titles than on FakeNewsNet titles.
-
-The next check trained models directly on FakeNewsNet titles. A Linear SVC with
-TF-IDF reached 0.8519 accuracy and 0.7858 macro F1, while a DistilBERT model
-adapted from the Kaggle fake-news model reached 0.8636 accuracy and 0.8025 macro
-F1. This suggests FakeNewsNet titles are learnable, but cross-dataset transfer
-from Kaggle to FakeNewsNet is weak without adaptation.
-
-## Error Analysis and Explainability
-
-The first cross-dataset error-analysis pass saved examples for false positives,
-false negatives, high-confidence mistakes, and low-confidence predictions. The
-largest issue is false positives: 16,735 real FakeNewsNet titles were predicted
-as `FAKE`.
-
-Initial token-level explanations were also generated for a small set of correct
-and incorrect title predictions. Several explanations highlight headline-style
-tokens such as `breaking` and source-like words. That is useful as a diagnostic
-because it suggests the model may be responding to presentation style and
-dataset-specific wording, not just meaningful factual content.
-
-These explanations should be treated as model-behavior clues. They do not prove
-that the model's reasoning is correct, and they do not verify whether an article
-is true or false.
-
-## Saved Artifacts
-
-Benchmark runs save outputs under:
-
-```text
-artifacts/evaluation/
-```
-
-Expected files per run:
-
-- `metrics.json`
-- `predictions.csv`
-- `confusion_matrix.png`
-- `calibration.png`
-- `summary.md`
-
-Current saved benchmark runs:
-
-- `artifacts/baselines/fake_news/20260602T205353Z/metrics.csv`
-- `artifacts/baselines/stance/20260602T205507Z/metrics.csv`
-- `artifacts/deep_learning/fake_news/metrics.csv`
-- `artifacts/deep_learning/stance/metrics.csv`
-- `artifacts/evaluation/fake_news/fake-news-kaggle/20260603T003238Z/`
-- `artifacts/evaluation/stance/stance-detection/20260603T005603Z/`
-- `artifacts/evaluation/cross_dataset/fakenewsnet_titles/20260604T181847Z/`
-- `artifacts/error_analysis/cross_dataset/fakenewsnet_titles/20260604T181847Z/`
-- `artifacts/explainability/cross_dataset/fakenewsnet_titles/20260604T181847Z/`
-- `artifacts/evaluation/title_only/fake-news-kaggle-title-only/20260604T205750Z/`
-- `artifacts/baselines/fakenewsnet_titles/20260604T205833Z/`
-- `artifacts/evaluation/domain_adapted/fakenewsnet_titles/20260604T210318Z/`
-
-## Next Result Tasks
-
-- Review representative false-positive and false-negative examples.
-- Review the first explanation examples and decide which ones should be shown in
-  the final public writeup.
+Notebook 5.3 now contains an in-domain FakeNewsNet title comparison, but it has not produced new reported results yet. Training on FakeNewsNet labels answers a different question from applying the Kaggle model without adaptation. Throughout the project, **FAKE**, **REAL**, and stance predictions describe dataset patterns; they are not fact checks.
