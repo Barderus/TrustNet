@@ -1,22 +1,9 @@
 import re
 import string
-from dataclasses import dataclass
-from pathlib import Path
-from typing import Iterable
 
 import pandas as pd
 from sklearn.feature_extraction.text import ENGLISH_STOP_WORDS, TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
-
-from utils.project_config import DATA_DIR
-
-
-@dataclass(frozen=True)
-class PreprocessingOutputs:
-    master_fakenews: Path
-    fakenews_preprocessed: Path
-    master_stance: Path
-    stance_preprocessed: Path
 
 
 def normalize_text(text: object) -> str:
@@ -143,7 +130,7 @@ def interpret_flesch(score: float | None) -> str:
     return "very difficult"
 
 
-def entity_counts(texts: Iterable[object], enabled: bool = False) -> list[int]:
+def entity_counts(texts, enabled=False):
     values = [normalize_text(text) for text in texts]
     if not enabled:
         return [0] * len(values)
@@ -158,16 +145,18 @@ def entity_counts(texts: Iterable[object], enabled: bool = False) -> list[int]:
     return [len(doc.ents) for doc in nlp.pipe(values, batch_size=100)]
 
 
-def build_master_fakenews(data_dir: Path = DATA_DIR) -> pd.DataFrame:
-    fake = pd.read_csv(data_dir / "fake-news-kaggle" / "Fake.csv")
-    true = pd.read_csv(data_dir / "fake-news-kaggle" / "True.csv")
+def build_master_fakenews():
+    fake = pd.read_csv("data/fake-news-kaggle/Fake.csv")
+    true = pd.read_csv("data/fake-news-kaggle/True.csv")
     fake = fake.assign(real=0)
     true = true.assign(real=1)
 
     frames = [fake, true]
-    more_path = data_dir / "More-fake-news" / "train.tsv"
-    if more_path.exists():
-        more = pd.read_csv(more_path, sep="\t")
+    try:
+        more = pd.read_csv("data/More-fake-news/train.tsv", sep="\t")
+    except FileNotFoundError:
+        pass
+    else:
         if "label" in more.columns:
             more = more.rename(columns={"label": "real"})
         frames.append(more)
@@ -233,10 +222,9 @@ def _headline_body_cosine(headline: object, body: object) -> float:
         return 0.0
 
 
-def build_master_stance(data_dir: Path = DATA_DIR) -> pd.DataFrame:
-    base_dir = data_dir / "StanceDetection"
-    bodies = pd.read_csv(base_dir / "train_bodies.csv")
-    stances = pd.read_csv(base_dir / "train_stances.csv")
+def build_master_stance():
+    bodies = pd.read_csv("data/StanceDetection/train_bodies.csv")
+    stances = pd.read_csv("data/StanceDetection/train_stances.csv")
     frame = stances.merge(bodies, on="Body ID", how="inner")
 
     frame["headline_len_chars"] = frame["Headline"].fillna("").astype(str).str.len()
