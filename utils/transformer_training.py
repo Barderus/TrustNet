@@ -1,57 +1,24 @@
-from dataclasses import dataclass
-from pathlib import Path
-
-import numpy as np
 import pandas as pd
 import torch
-from sklearn.metrics import accuracy_score, precision_recall_fscore_support
 from sklearn.model_selection import GroupShuffleSplit
-from transformers import (
-    DistilBertForSequenceClassification,
-    DistilBertTokenizerFast,
-    Trainer,
-    TrainingArguments,
-)
 
 from utils.datasets import (
-    GROUPED_SPLIT_VERSION,
     fake_news_group_keys,
     load_fake_news_kaggle_bundle,
     load_stance_detection_bundle,
     near_duplicate_eval_texts,
     stance_group_keys,
 )
-from utils.project_config import DATA_DIR, MODEL_PATHS
-
-
-@dataclass(frozen=True)
-class TransformerTrainingConfig:
-    task_name: str
-    data_path: Path
-    text_column: str
-    label_column: str
-    label_names: list[str]
-    model_output_dir: Path
-    tokenizer_output_dir: Path
-    training_output_dir: Path
-    test_size: float = 0.2
-    random_state: int = 42
-    pretrained_model_name: str = "distilbert-base-uncased"
-    max_length: int = 512
-    num_train_epochs: float = 3.0
-    train_batch_size: int = 8
-    eval_batch_size: int = 8
-    learning_rate: float = 2e-5
-    weight_decay: float = 0.01
-    limit: int | None = None
 
 
 class TextClassificationDataset(torch.utils.data.Dataset):
-    def __init__(self, encodings: dict, labels: list[int]) -> None:
+    """Give the Transformers Trainer tokenized text and its label."""
+
+    def __init__(self, encodings, labels):
         self.encodings = encodings
         self.labels = labels
 
-    def __getitem__(self, index: int) -> dict:
+    def __getitem__(self, index):
         item = {
             key: torch.tensor(value[index])
             for key, value in self.encodings.items()
@@ -59,232 +26,88 @@ class TextClassificationDataset(torch.utils.data.Dataset):
         item["labels"] = torch.tensor(self.labels[index])
         return item
 
-    def __len__(self) -> int:
+    def __len__(self):
         return len(self.labels)
 
 
-def fake_news_training_config(output_base_dir: Path) -> TransformerTrainingConfig:
-    paths = MODEL_PATHS["fake_news"]
-    return TransformerTrainingConfig(
-        task_name="fake_news",
-        data_path=DATA_DIR / "preprocessed" / "fakenews_preprocessed.csv",
-        text_column="prep_text",
-        label_column="real",
-        label_names=["FAKE", "REAL"],
-        model_output_dir=paths["model"],
-        tokenizer_output_dir=paths["tokenizer"],
-        training_output_dir=output_base_dir / "training" / "fake_news_transformer",
-    )
+def prepare_training_split(
+    task_name, data_path, test_size=0.2, random_state=42, limit=None
+):
+    frame = pd.read_csv(data_path)
 
-
-def stance_training_config(output_base_dir: Path) -> TransformerTrainingConfig:
-    paths = MODEL_PATHS["stance"]
-    return TransformerTrainingConfig(
-        task_name="stance",
-        data_path=DATA_DIR / "preprocessed" / "stance_preprocessed.csv",
-        text_column="combined_text",
-        label_column="stance_label",
-        label_names=["AGREE", "DISAGREE", "DISCUSS", "UNRELATED"],
-        model_output_dir=paths["model"],
-        tokenizer_output_dir=paths["tokenizer"],
-        training_output_dir=output_base_dir / "training" / "stance_transformer",
-    )
-
-
-def _load_training_frame(config: TransformerTrainingConfig) -> pd.DataFrame:
-    frame = pd.read_csv(config.data_path)
-    if config.text_column not in frame.columns:
-        if config.task_name == "stance" and {"headline_prep", "body_prep"}.issubset(frame.columns):
-            frame[config.text_column] = (
+    if task_name == "fake_news":
+        text_column = "prep_text"
+        label_column = "real"
+    elif task_name == "stance":
+        text_column = "combined_text"
+        label_column = "stance_label"
+        has_clean_text = {"headline_prep", "body_prep"}.issubset(frame.columns)
+        if text_column not in frame.columns and has_clean_text:
+            frame[text_column] = (
                 frame["headline_prep"].fillna("").astype(str)
                 + " [SEP] "
                 + frame["body_prep"].fillna("").astype(str)
             )
-        else:
-            raise ValueError(
-                f"Missing text column '{config.text_column}' in {config.data_path}."
-            )
+        if label_column not in frame.columns and "Stance" in frame.columns:
+            frame[label_column] = frame["Stance"].astype(str).str.upper()
+    else:
+        raise ValueError(f"Unknown training task: {task_name}")
 
-    if config.label_column not in frame.columns:
-        if config.task_name == "stance" and "Stance" in frame.columns:
-            frame[config.label_column] = frame["Stance"].astype(str).str.upper()
-        else:
-            raise ValueError(
-                f"Missing label column '{config.label_column}' in {config.data_path}."
-            )
+    for column in (text_column, label_column):
+        if column not in frame.columns:
+            raise ValueError(f"Missing column '{column}' in {data_path}.")
 
-    frame = frame.dropna(subset=[config.text_column, config.label_column]).copy()
-    if config.limit is not None:
-        frame = frame.head(config.limit).copy()
-    return frame
+    frame = frame.dropna(subset=[text_column, label_column]).copy()
+    if limit is not None:
+        frame = frame.head(limit).copy()
 
-
-def _prepare_labels(frame: pd.DataFrame, config: TransformerTrainingConfig) -> pd.Series:
-    label_to_id = {
-        label_name: label_index
-        for label_index, label_name in enumerate(config.label_names)
-    }
-
-    if config.task_name == "fake_news":
-        return frame[config.label_column].astype(int)
-
-    labels = frame[config.label_column].astype(str).str.upper().map(label_to_id)
-    if labels.isna().any():
-        unknown = sorted(frame.loc[labels.isna(), config.label_column].astype(str).unique())
-        raise ValueError(f"Unknown labels for {config.task_name}: {unknown}")
-    return labels.astype(int)
-
-
-def prepare_training_split(config: TransformerTrainingConfig):
-    frame = _load_training_frame(config)
-    data_dir = config.data_path.parent.parent
-    if config.task_name == "fake_news":
+    if task_name == "fake_news":
         kaggle = load_fake_news_kaggle_bundle(
-            data_dir=data_dir,
-            test_size=config.test_size,
-            random_state=config.random_state,
+            test_size=test_size,
+            random_state=random_state,
         )
         frame["split_group"] = fake_news_group_keys(
-            frame["clean_text"], frame[config.text_column]
+            frame["clean_text"], frame[text_column]
         )
         frame = frame.loc[
             ~frame["split_group"].isin(set(kaggle.test["split_group"]))
         ].copy()
         test_texts = set(kaggle.test["model_input"])
         overlapping_texts = test_texts | near_duplicate_eval_texts(
-            test_texts, frame[config.text_column].astype(str)
+            test_texts, frame[text_column].astype(str)
         )
-        frame = frame.loc[~frame[config.text_column].isin(overlapping_texts)].copy()
-    elif config.task_name == "stance":
-        competition = load_stance_detection_bundle(data_dir=data_dir)
+        frame = frame.loc[~frame[text_column].isin(overlapping_texts)].copy()
+        labels = frame[label_column].astype(int)
+    else:
+        competition = load_stance_detection_bundle()
         frame = frame.loc[
             frame["Body ID"].isin(set(competition.train["Body ID"]))
         ].copy()
         frame["split_group"] = stance_group_keys(
             frame["articleBody"], frame["Body ID"]
         )
-    else:
-        raise ValueError(f"Unknown training task: {config.task_name}")
+        labels = frame[label_column].astype(str).str.upper()
+        valid_labels = {"AGREE", "DISAGREE", "DISCUSS", "UNRELATED"}
+        unknown = sorted(set(labels) - valid_labels)
+        if unknown:
+            raise ValueError(f"Unknown stance labels: {unknown}")
 
-    labels = _prepare_labels(frame, config)
     splitter = GroupShuffleSplit(
-        n_splits=1, test_size=config.test_size, random_state=config.random_state
+        n_splits=1, test_size=test_size, random_state=random_state
     )
     train_indices, eval_indices = next(
         splitter.split(frame, labels, groups=frame["split_group"])
     )
     train_frame = frame.iloc[train_indices].copy()
     eval_frame = frame.iloc[eval_indices].copy()
-    if config.task_name == "fake_news":
-        train_texts = set(train_frame[config.text_column].astype(str))
+
+    if task_name == "fake_news":
+        train_texts = set(train_frame[text_column].astype(str))
         overlapping_texts = train_texts | near_duplicate_eval_texts(
-            train_texts, eval_frame[config.text_column].astype(str)
+            train_texts, eval_frame[text_column].astype(str)
         )
         eval_frame = eval_frame.loc[
-            ~eval_frame[config.text_column].isin(overlapping_texts)
+            ~eval_frame[text_column].isin(overlapping_texts)
         ].copy()
+
     return train_frame, eval_frame
-
-
-def _compute_metrics(eval_pred) -> dict:
-    logits, labels = eval_pred
-    predictions = np.argmax(logits, axis=-1)
-    precision, recall, f1, _ = precision_recall_fscore_support(
-        labels,
-        predictions,
-        average="macro",
-        zero_division=0,
-    )
-    accuracy = accuracy_score(labels, predictions)
-    return {
-        "accuracy": float(accuracy),
-        "macro_precision": float(precision),
-        "macro_recall": float(recall),
-        "macro_f1": float(f1),
-    }
-
-
-def train_transformer(config: TransformerTrainingConfig) -> Path:
-    train_frame, eval_frame = prepare_training_split(config)
-    train_texts = train_frame[config.text_column].astype(str).tolist()
-    eval_texts = eval_frame[config.text_column].astype(str).tolist()
-    train_labels = _prepare_labels(train_frame, config).tolist()
-    eval_labels = _prepare_labels(eval_frame, config).tolist()
-    print(
-        f"Training rows: {len(train_frame)}, "
-        f"labels: {train_frame[config.label_column].value_counts().to_dict()}"
-    )
-    print(
-        f"Validation rows: {len(eval_frame)}, "
-        f"labels: {eval_frame[config.label_column].value_counts().to_dict()}"
-    )
-    print(
-        f"Split groups: {train_frame['split_group'].nunique()} train, "
-        f"{eval_frame['split_group'].nunique()} validation"
-    )
-
-    tokenizer = DistilBertTokenizerFast.from_pretrained(config.pretrained_model_name)
-    train_encodings = tokenizer(
-        train_texts,
-        truncation=True,
-        padding=True,
-        max_length=config.max_length,
-    )
-    eval_encodings = tokenizer(
-        eval_texts,
-        truncation=True,
-        padding=True,
-        max_length=config.max_length,
-    )
-
-    train_dataset = TextClassificationDataset(train_encodings, train_labels)
-    eval_dataset = TextClassificationDataset(eval_encodings, eval_labels)
-
-    id_to_label = {
-        label_index: label_name
-        for label_index, label_name in enumerate(config.label_names)
-    }
-    label_to_id = {
-        label_name: label_index
-        for label_index, label_name in id_to_label.items()
-    }
-    model = DistilBertForSequenceClassification.from_pretrained(
-        config.pretrained_model_name,
-        num_labels=len(config.label_names),
-        id2label=id_to_label,
-        label2id=label_to_id,
-    )
-
-    config.training_output_dir.mkdir(parents=True, exist_ok=True)
-    training_args = TrainingArguments(
-        output_dir=str(config.training_output_dir),
-        eval_strategy="epoch",
-        save_strategy="epoch",
-        learning_rate=config.learning_rate,
-        per_device_train_batch_size=config.train_batch_size,
-        per_device_eval_batch_size=config.eval_batch_size,
-        num_train_epochs=config.num_train_epochs,
-        weight_decay=config.weight_decay,
-        load_best_model_at_end=True,
-        metric_for_best_model="macro_f1",
-        greater_is_better=True,
-        report_to=[],
-    )
-
-    trainer = Trainer(
-        model=model,
-        args=training_args,
-        train_dataset=train_dataset,
-        eval_dataset=eval_dataset,
-        compute_metrics=_compute_metrics,
-    )
-    trainer.train()
-    metrics = trainer.evaluate()
-    trainer.save_metrics("eval", metrics)
-
-    model.config.trustnet_split_version = GROUPED_SPLIT_VERSION
-    config.model_output_dir.mkdir(parents=True, exist_ok=True)
-    config.tokenizer_output_dir.mkdir(parents=True, exist_ok=True)
-    model.save_pretrained(config.model_output_dir)
-    tokenizer.save_pretrained(config.tokenizer_output_dir)
-    return config.model_output_dir

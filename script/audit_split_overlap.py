@@ -9,17 +9,20 @@ from utils.datasets import (
     near_duplicate_eval_texts,
 )
 from utils.preprocessing import clean_for_model
-from utils.project_config import ARTIFACTS_DIR
-from utils.transformer_training import (
-    fake_news_training_config,
-    prepare_training_split,
-    stance_training_config,
-)
+from utils.transformer_training import prepare_training_split
+
+
+TEST_SIZE = 0.2
+RANDOM_STATE = 42
 
 
 def audit_fake_news():
-    config = fake_news_training_config(ARTIFACTS_DIR)
-    train_frame, eval_frame = prepare_training_split(config)
+    train_frame, eval_frame = prepare_training_split(
+        task_name="fake_news",
+        data_path="data/preprocessed/fakenews_preprocessed.csv",
+        test_size=TEST_SIZE,
+        random_state=RANDOM_STATE,
+    )
     benchmark = load_fake_news_kaggle_bundle().test
     train_texts = train_frame["prep_text"].astype(str)
     eval_texts = eval_frame["prep_text"].astype(str)
@@ -29,7 +32,7 @@ def audit_fake_news():
     near_validation = near_duplicate_eval_texts(train_texts, eval_texts)
     near_benchmark = near_duplicate_eval_texts(development_texts, benchmark_keys)
     print("Fake-news transformer validation:")
-    print(f"  grouped split: test_size={config.test_size}, seed={config.random_state}")
+    print(f"  grouped split: test_size={TEST_SIZE}, seed={RANDOM_STATE}")
     print(f"  rows: {len(eval_texts)}")
     print(f"  training label counts: {train_frame['real'].value_counts().to_dict()}")
     print(f"  validation label counts: {eval_frame['real'].value_counts().to_dict()}")
@@ -60,8 +63,12 @@ def audit_fake_news():
 
 
 def audit_stance():
-    config = stance_training_config(ARTIFACTS_DIR)
-    train_frame, eval_frame = prepare_training_split(config)
+    train_frame, eval_frame = prepare_training_split(
+        task_name="stance",
+        data_path="data/preprocessed/stance_preprocessed.csv",
+        test_size=TEST_SIZE,
+        random_state=RANDOM_STATE,
+    )
     bundle = load_stance_detection_bundle()
     development_bodies = bundle.train.drop_duplicates(subset=["Body ID"])
     competition_bodies = bundle.test.drop_duplicates(subset=["Body ID"]).copy()
@@ -75,7 +82,7 @@ def audit_stance():
     )
 
     print("Stance transformer validation:")
-    print(f"  grouped split: test_size={config.test_size}, seed={config.random_state}")
+    print(f"  grouped split: test_size={TEST_SIZE}, seed={RANDOM_STATE}")
     print(f"  rows: {len(eval_frame)}")
     print(f"  training label counts: {train_frame['stance_label'].value_counts().to_dict()}")
     print(f"  validation label counts: {eval_frame['stance_label'].value_counts().to_dict()}")

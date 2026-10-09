@@ -1,12 +1,10 @@
 from collections import defaultdict
 from dataclasses import dataclass
 from hashlib import sha256
-from pathlib import Path
 
 import pandas as pd
 from sklearn.model_selection import GroupShuffleSplit
 
-from utils.project_config import DATA_DIR
 from utils.preprocessing import clean_for_model, prepare_stance_input
 
 
@@ -25,13 +23,13 @@ class DatasetBundle:
     labels: list[str]
 
 
-def _combine_title_and_text(frame: pd.DataFrame) -> pd.Series:
+def _combine_title_and_text(frame):
     title = frame["title"].fillna("").astype(str).str.strip()
     text = frame["text"].fillna("").astype(str).str.strip()
     return (title + "\n\n" + text).str.strip()
 
 
-def fake_news_group_keys(body_texts: pd.Series, model_inputs: pd.Series) -> pd.Series:
+def fake_news_group_keys(body_texts, model_inputs):
     groups = []
     for body, model_input in zip(body_texts, model_inputs):
         body_words = clean_for_model(body).split()
@@ -45,7 +43,7 @@ def fake_news_group_keys(body_texts: pd.Series, model_inputs: pd.Series) -> pd.S
     return pd.Series(groups, index=body_texts.index)
 
 
-def stance_group_keys(body_texts: pd.Series, body_ids: pd.Series) -> pd.Series:
+def stance_group_keys(body_texts, body_ids):
     groups = []
     for body, body_id in zip(body_texts, body_ids):
         cleaned_body = clean_for_model(body)
@@ -79,15 +77,11 @@ def near_duplicate_eval_texts(train_texts, eval_texts):
 
 
 def load_fake_news_kaggle_bundle(
-    data_dir: Path = DATA_DIR,
-    test_size: float = 0.2,
-    random_state: int = 42,
-) -> DatasetBundle:
-    fake_path = data_dir / "fake-news-kaggle" / "Fake.csv"
-    true_path = data_dir / "fake-news-kaggle" / "True.csv"
-
-    fake_frame = pd.read_csv(fake_path)
-    true_frame = pd.read_csv(true_path)
+    test_size=0.2,
+    random_state=42,
+):
+    fake_frame = pd.read_csv("data/fake-news-kaggle/Fake.csv")
+    true_frame = pd.read_csv("data/fake-news-kaggle/True.csv")
 
     fake_frame = fake_frame.assign(label="FAKE")
     true_frame = true_frame.assign(label="REAL")
@@ -124,12 +118,10 @@ def load_fake_news_kaggle_bundle(
 
 
 def load_fake_news_kaggle_title_bundle(
-    data_dir: Path = DATA_DIR,
-    test_size: float = 0.2,
-    random_state: int = 42,
-) -> DatasetBundle:
+    test_size=0.2,
+    random_state=42,
+):
     bundle = load_fake_news_kaggle_bundle(
-        data_dir=data_dir,
         test_size=test_size,
         random_state=random_state,
     )
@@ -153,7 +145,7 @@ def load_fake_news_kaggle_title_bundle(
     )
 
 
-def _load_stance_pair_frame(bodies_path: Path, stances_path: Path) -> pd.DataFrame:
+def _load_stance_pair_frame(bodies_path, stances_path):
     bodies = pd.read_csv(bodies_path)
     stances = pd.read_csv(stances_path)
 
@@ -169,15 +161,14 @@ def _load_stance_pair_frame(bodies_path: Path, stances_path: Path) -> pd.DataFra
     return merged
 
 
-def load_stance_detection_bundle(data_dir: Path = DATA_DIR) -> DatasetBundle:
-    base_dir = data_dir / "StanceDetection"
+def load_stance_detection_bundle():
     train_frame = _load_stance_pair_frame(
-        base_dir / "train_bodies.csv",
-        base_dir / "train_stances.csv",
+        "data/StanceDetection/train_bodies.csv",
+        "data/StanceDetection/train_stances.csv",
     ).reset_index(drop=True)
     test_frame = _load_stance_pair_frame(
-        base_dir / "competition_test_bodies.csv",
-        base_dir / "competition_test_stances.csv",
+        "data/StanceDetection/competition_test_bodies.csv",
+        "data/StanceDetection/competition_test_stances.csv",
     ).reset_index(drop=True)
     train_frame["split_group"] = stance_group_keys(
         train_frame["body"], train_frame["Body ID"]
