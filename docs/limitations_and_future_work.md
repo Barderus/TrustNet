@@ -1,46 +1,44 @@
 # Limitations and Future Work
 
-TrustNet is useful as a learning and research project, but it should not be
-presented as a finished misinformation detection system. The project can show
-how different NLP models behave on specific datasets, but that is different from
-verifying whether a real article is true or false.
+TrustNet is my undergraduate capstone study of model behavior on labeled
+datasets. Its fake-news output is a prediction of dataset labels, and its
+stance output describes a headline/body relationship. Neither verifies a
+claim or establishes an article's truth.
 
 ## Dataset Limitations
 
-Fake-news datasets often include strong signals that are not really about
-truthfulness. A model may learn patterns tied to source, topic, time period,
-writing style, formatting, or duplicated content.
+Source, topic, time period, writing style, formatting, and repeated content can
+all correlate with a dataset's labels. On the current Kaggle holdout, `reuters`
+appears in 4,261 of 4,272 real inputs and 70 of 4,711 fake inputs. Removing
+that token in a small paired diagnostic changed five row predictions, but this
+does not measure dependence on all source cues. The grouped split and restricted
+near-duplicate screen reduce known overlap without eliminating every related
+article or shared source pattern.
 
-The labels also simplify a complicated problem. A binary fake/real label does
-not capture uncertainty, satire, partial truth, changing events, or the
-credibility of a source over time.
+Binary fake/real labels also omit uncertainty, satire, partial truth, changing
+events, and source credibility over time.
 
 ## Generalization Concerns
 
-Strong performance on one dataset does not automatically mean the model will
-work well on another dataset. A random split can place similar articles,
-publishers, or writing patterns in both training and testing data.
-
-For that reason, cross-dataset evaluation is one of the most important next
-steps. It will give a more honest view of whether the model has learned
-generalizable patterns or mostly dataset-specific shortcuts.
+The Kaggle-trained model reached 0.9969 macro F1 on its grouped title/body
+holdout but 0.2344 on FakeNewsNet titles without adaptation. That evaluation
+changes the source and removes article bodies at the same time. A Kaggle
+title-only check reached 0.8259 macro F1, but it does not isolate the remaining
+source and labeling differences. The FNC-1 stance model reached 0.6113 macro
+F1 and recognized only 61 of 697 `DISAGREE` pairs.
 
 ## Interpretability Limitations
 
-Token-level explanations can help show which words influenced a prediction, but
-they do not prove that the model reasoned correctly. Explanations can still
-reflect spurious correlations, tokenization behavior, or artifacts in the
-training data.
-
-I treat explanations as a way to inspect model behavior, not as evidence that a
-claim is true or false.
+Token attributions show local influence on the selected prediction. They can
+reflect spurious correlations or tokenization effects and cannot recover
+missing article context. On FakeNewsNet, 16,530 of 16,944 transfer errors had
+predicted-class probability at least 0.9. The saved probabilities should not
+be treated as factual confidence or used as a portable decision threshold.
 
 ## Ethical Concerns
 
-TrustNet should not be used as an automated fact-checker. A prediction from the
-model is only a screening signal. In a real setting, this kind of system would
-need clear uncertainty messaging, careful user interface design, and human
-review.
+TrustNet should not be used as an automated fact-checker. Any review workflow
+would need clear uncertainty messaging, appropriate context, and human review.
 
 There is also a risk of harm if a system labels content incorrectly. False
 positives can unfairly flag reliable content, while false negatives can allow
@@ -48,12 +46,9 @@ misleading content to pass without review.
 
 ## Future Work
 
-- Run cross-dataset evaluation on FakeNewsNet and other external datasets.
-- Add grouped or source-aware splits when metadata allows.
-- Improve duplicate and near-duplicate detection.
-- Compare transformer results against strong TF-IDF baselines.
-- Add calibration analysis and uncertainty thresholds.
-- Add structured error analysis for false positives and false negatives.
-- Add explainability examples for both correct and incorrect predictions.
-- Integrate explainability into the Streamlit app.
-- Explore human-in-the-loop review workflows.
+- Evaluate external title/body datasets and source-aware splits where metadata permits.
+- Improve near-duplicate screening and audit source/style cues beyond one token.
+- Compare models on matched examples and text coverage across input lengths.
+- Study calibration by source and input format before considering thresholds.
+- Review more correct and incorrect cases, including long inputs and app attributions.
+- Explore a human review workflow with clear limits on what each prediction means.
