@@ -1,99 +1,23 @@
-from pathlib import Path
-import sys
-import warnings
-
-import shap
-import torch
-
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
-if str(PROJECT_ROOT) not in sys.path:
-    sys.path.insert(0, str(PROJECT_ROOT))
-
 from utils.model_loader import load_stance_model
 from utils.prediction import predict_text
 from utils.preprocessing import prepare_stance_input
-from utils.project_config import ARTIFACTS_DIR
 
 
 HEADLINE = "Enter a headline or claim here."
 BODY = "Enter the article body here."
-SAVE_SHAP = False
-OUTPUT_DIR = ARTIFACTS_DIR / "explainability"
-LABELS = ["agree", "disagree", "discuss", "unrelated"]
+LABELS = ["AGREE", "DISAGREE", "DISCUSS", "UNRELATED"]
 
 
-warnings.filterwarnings(
-    "ignore",
-    message=".*_register_pytree_node.*",
-    category=FutureWarning,
-)
-
-
-def build_stance_input(headline: str, body: str) -> str:
-    return prepare_stance_input(headline, body)
-
-
-def make_shap_predict_fn(model, tokenizer):
-    def predict_fn(texts):
-        clean_texts = []
-        for text in texts:
-            if not isinstance(text, str):
-                if hasattr(text, "__array__"):
-                    text = text.tolist()
-                if isinstance(text, list):
-                    text = "".join(str(value) for value in text)
-            clean_texts.append(str(text))
-
-        inputs = tokenizer(
-            clean_texts,
-            padding=True,
-            truncation=True,
-            max_length=512,
-            return_tensors="pt",
-        )
-
-        with torch.no_grad():
-            outputs = model(**inputs)
-            probabilities = torch.nn.functional.softmax(outputs.logits, dim=1)
-
-        return probabilities.cpu().numpy()
-
-    return predict_fn
-
-
-def save_shap_explanation(model, tokenizer, combined_text: str, output_dir: Path) -> Path:
-    output_dir.mkdir(parents=True, exist_ok=True)
-    masker = shap.maskers.Text(tokenizer)
-    explainer = shap.Explainer(make_shap_predict_fn(model, tokenizer), masker)
-    shap_values = explainer([combined_text])
-    html_object = shap.plots.text(shap_values[0], display=False)
-    html_output = html_object.data if hasattr(html_object, "data") else html_object
-
-    output_path = output_dir / "stance_shap_explanation.html"
-    output_path.write_text(html_output, encoding="utf-8")
-    return output_path
-
-
-def main() -> None:
+def main():
     model, tokenizer = load_stance_model()
-    model.eval()
+    model_input = prepare_stance_input(HEADLINE, BODY)
+    predicted_index, probabilities, _ = predict_text(
+        model, tokenizer, model_input
+    )
 
-    combined_text = build_stance_input(HEADLINE, BODY)
-    predicted_index, probabilities, _ = predict_text(model, tokenizer, combined_text)
-    predicted_label = LABELS[predicted_index]
-
-    print(f"Prediction: {predicted_label.upper()}")
+    print("Prediction:", LABELS[int(predicted_index)])
     for label, probability in zip(LABELS, probabilities):
         print(f"{label:10s}: {float(probability):.4f}")
-
-    if SAVE_SHAP:
-        output_path = save_shap_explanation(
-            model=model,
-            tokenizer=tokenizer,
-            combined_text=combined_text,
-            output_dir=OUTPUT_DIR,
-        )
-        print(f"SHAP explanation saved to: {output_path}")
 
 
 if __name__ == "__main__":

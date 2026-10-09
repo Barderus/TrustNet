@@ -2,31 +2,30 @@ from functools import lru_cache
 
 from transformers import DistilBertForSequenceClassification, DistilBertTokenizerFast
 
-from utils.project_config import get_model_paths
-
-
-def _load_model_bundle(model_key):
-    model_path, tokenizer_path = get_model_paths(model_key)
-
-    if not model_path.exists() or not tokenizer_path.exists():
+def _load_model_bundle(model_dir, tokenizer_dir):
+    try:
+        model = DistilBertForSequenceClassification.from_pretrained(model_dir)
+        tokenizer = DistilBertTokenizerFast.from_pretrained(tokenizer_dir)
+    except OSError as error:
         raise FileNotFoundError(
-            "Required model artifacts are missing. "
-            f"Expected model at '{model_path}' and tokenizer at '{tokenizer_path}'. "
-            "Train the missing model or add the expected folders under the repository's "
-            "models/ directory."
-        )
-
-    model = DistilBertForSequenceClassification.from_pretrained(model_path)
-    tokenizer = DistilBertTokenizerFast.from_pretrained(tokenizer_path)
+            "Required model artifacts could not be loaded from "
+            f"'{model_dir}' and '{tokenizer_dir}'."
+        ) from error
     model.eval()
     return model, tokenizer
 
 
 @lru_cache(maxsize=1)
 def load_fake_news_model():
-    return _load_model_bundle("fake_news")
+    return _load_model_bundle(
+        "models/fake_news_model/distilbert_fakenews_model",
+        "models/fake_news_model/distilbert_fakenews_tokenizer",
+    )
 
 
 @lru_cache(maxsize=1)
 def load_stance_model():
-    return _load_model_bundle("stance")
+    return _load_model_bundle(
+        "models/stance_detection_model/distilbert_stanceD",
+        "models/stance_detection_model/distilbert_tokenizer_stanceD",
+    )
