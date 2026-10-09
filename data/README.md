@@ -1,39 +1,18 @@
 # Data
 
-This folder contains the source datasets used in TrustNet. I keep the raw data
-organized here so the project has a clear starting point before preprocessing,
-training, or evaluation.
+The raw dataset files below are tracked in this repository. Their source links
+are provided for provenance or replacement if a local file is missing.
 
-Generated preprocessing outputs are not committed because they can be recreated
-from the scripts.
+## Source Files
 
-## Dataset Folders
-
-| Folder | Dataset | Used for |
+| Source | Local files | Use |
 | --- | --- | --- |
-| `data/fake-news-kaggle/` | Kaggle Fake News Dataset | Main fake-news classification data |
-| `data/StanceDetection/` | FNC-1 stance detection data | Headline/body stance detection |
-| `data/FakeNewsNet/` | FakeNewsNet files | External comparison and generalization checks |
-| `data/More-fake-news/` | Additional fake-news TSV data | Extra data used during exploration |
-| `data/preprocessed/` | Generated preprocessing outputs | Recreated locally and ignored by Git |
-
-## Generated Data
-
-Preprocessed files are written under:
-
-```text
-data/preprocessed/
-```
-
-To recreate them, run this from the project root:
-
-```bash
-uv run python script/preprocess_data.py
-```
+| [Kaggle Fake and Real News](https://www.kaggle.com/datasets/clmentbisaillon/fake-and-real-news-dataset) | `data/fake-news-kaggle/Fake.csv`, `data/fake-news-kaggle/True.csv` | Main fake-news preprocessing |
+| [FNC-1](https://github.com/FakeNewsChallenge/fnc-1) | `data/StanceDetection/train_bodies.csv`, `data/StanceDetection/train_stances.csv` | Stance preprocessing |
+| [FNC-1](https://github.com/FakeNewsChallenge/fnc-1) | `data/StanceDetection/competition_test_bodies.csv`, `data/StanceDetection/competition_test_stances.csv` | Stance benchmark evaluation |
+| [FakeNewsNet](https://github.com/KaiDMML/FakeNewsNet) | `data/FakeNewsNet/gossipcop_fake.csv`, `data/FakeNewsNet/gossipcop_real.csv`, `data/FakeNewsNet/politifact_fake.csv`, `data/FakeNewsNet/politifact_real.csv` | External and in-domain title evaluation |
+| [More Fake News](https://huggingface.co/datasets/Pulk17/Fake-News-Detection-dataset) | `data/More-fake-news/train.tsv` | Included in current fake-news preprocessing; required by the fake-news EDA notebook |
 
 ## Notes
-
-Each dataset comes from its original public source and may have its own license
-or usage rules. Any reported result should name the dataset and split used to
-produce it, especially when comparing fake-news detection and stance detection
-results.
+Each dataset may have its own license or usage rules. Reported results should
+name the dataset and split used to produce them.
